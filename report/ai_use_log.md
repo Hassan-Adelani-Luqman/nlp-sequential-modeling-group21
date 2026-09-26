@@ -1,0 +1,11 @@
+# AI-use log
+
+The brief requires us to disclose significant AI use. Add a row whenever an AI tool
+contributes to the work, and say how the output was checked. The report's
+AI-disclosure section is written from this log.
+
+| Date | Member | Tool | What it was used for | How we verified / what we changed |
+|---|---|---|---|---|
+| 2026-09-26 | M1 | Claude Code | Drafting the phased project plan (Plan.md) from the brief and rubric | Reviewed against the brief and rubric; dataset choice and model list discussed and agreed by the group |
+| 2026-09-26 | M1 | Claude Code | Scaffolding Phase 1 code: `src/paths.py`, `src/data.py`, `src/utils.py`, `src/evaluate.py`, smoke tests, READMEs | Read and understood every function; smoke tests pass (`pytest -q`); split checked on the real data |
+| 2026-09-26 | M1 | Claude Code | Rewriting the plan and Phase 1 code for the audio challenge (news data was inaccessible): audio loader, `src/features.py` (energy-window crop, log-mel/MFCC, caching), audio smoke tests; profiling the recordings | Checked file-format and duration stats on the real data; tests pass on synthetic and real data; split hash b74d294f… recorded |
