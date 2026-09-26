@@ -1,0 +1,33 @@
+# Raw competition data (download from Zindi - see data/README.md)
+data/raw/
+*.zip
+
+# Model weights, checkpoints and large caches
+checkpoints/
+results/cache/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.vec
+*.vec.gz
+*.npy
+
+# Credentials
+kaggle.json
+.env
+
+# Python / tooling
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+wandb/
+runs_tmp/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

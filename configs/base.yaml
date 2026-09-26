@@ -1,0 +1,29 @@
+# Settings shared by every experiment. Model configs (a1_*.yaml ... a5_*.yaml)
+# add their own keys. Do not change these without telling the group: the
+# frozen split and the comparison depend on them.
+
+project: swahili-audio-group21
+seed: 42
+final_seeds: [42, 13, 7]          # R3: every neural model is trained with these
+
+split:
+  dir: data/splits                 # committed; created once by `python -m src.data --make-splits`
+  fractions: {train: 0.70, val: 0.15, test: 0.15}   # 2940 / 630 / 630 clips
+  stratified: true
+  hash: b74d294fa65d9ae708be8f50b598e6eb
+
+audio:                             # measured: all 6,000 files are 16 kHz mono PCM-16, 2.2-62 s (median 4.3 s)
+  sample_rate: 16000
+  crop: energy                     # energy | trim | none  (see src/features.py)
+  seconds: 1.5                     # provisional - EDA confirms, R2 tests 1.0 / 1.5 / 2.0
+  top_db: 30                       # used by crop=trim (A2 HMM); EDA tunes it
+  peak_normalise: true
+
+features:                          # 25 ms window, 10 ms hop -> 100 frames/s
+  n_fft: 400
+  hop_length: 160
+  n_mels: 64
+  n_mfcc: 40
+
+selection_metric: val_log_loss     # official Zindi metric; model selection uses validation only
+report_metrics: [log_loss, macro_f1, accuracy, roc_auc_ovr, ece]
