@@ -1,0 +1,79 @@
+{
+  "created_utc": "2026-09-26T13:21:52+00:00",
+  "seed": 42,
+  "fractions": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "sizes": {
+    "train": 2940,
+    "val": 630,
+    "test": 630
+  },
+  "class_counts": {
+    "train": {
+      "hapana": 245,
+      "kumi": 245,
+      "mbili": 245,
+      "moja": 245,
+      "nane": 245,
+      "ndio": 245,
+      "nne": 245,
+      "saba": 245,
+      "sita": 245,
+      "tano": 245,
+      "tatu": 245,
+      "tisa": 245
+    },
+    "val": {
+      "hapana": 53,
+      "kumi": 52,
+      "mbili": 53,
+      "moja": 52,
+      "nane": 52,
+      "ndio": 53,
+      "nne": 52,
+      "saba": 52,
+      "sita": 53,
+      "tano": 53,
+      "tatu": 53,
+      "tisa": 52
+    },
+    "test": {
+      "hapana": 52,
+      "kumi": 53,
+      "mbili": 52,
+      "moja": 53,
+      "nane": 53,
+      "ndio": 52,
+      "nne": 53,
+      "saba": 53,
+      "sita": 52,
+      "tano": 52,
+      "tatu": 52,
+      "tisa": 53
+    }
+  },
+  "glosses": {
+    "hapana": "no",
+    "kumi": "ten",
+    "mbili": "two",
+    "moja": "one",
+    "nane": "eight",
+    "ndio": "yes",
+    "nne": "four",
+    "saba": "seven",
+    "sita": "six",
+    "tano": "five",
+    "tatu": "three",
+    "tisa": "nine"
+  },
+  "source": {
+    "n_source_rows": 4200,
+    "n_duplicates_dropped": 0,
+    "n_label_conflicts": 0,
+    "dropped_duplicate_ids": []
+  },
+  "split_hash": "b74d294fa65d9ae708be8f50b598e6eb"
+}
