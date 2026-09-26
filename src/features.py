@@ -1,0 +1,216 @@
+"""Audio preprocessing and acoustic features shared by all models.
+
+Pipeline per clip::
+
+    load_audio (16 kHz mono) -> crop (energy window | trim | none) -> peak-normalise -> features
+
+Why an energy window by default: clips are 2-62 s long (median 4.3 s) but a
+spoken digit lasts under a second, and a single ``top_db`` trim leaves long
+noisy tails in many clips. ``energy_crop`` keeps the fixed-length window with
+the most signal energy, which contains the word in the typical clip and gives
+every model the same input length. The window length is an R2 ablation
+(1.0 / 1.5 / 2.0 s).
+
+Feature types (frame rate 100 Hz: 25 ms window, 10 ms hop):
+  * ``logmel``     - (T, 64) log-mel spectrogram           -> A3, A4
+  * ``mfcc``       - (T, 120) 40 MFCC + delta + delta-delta -> A2 (MFCC-13 variant), A3/A4 ablation
+  * ``mfcc_stats`` - (480,) mean/std/min/max of ``mfcc``    -> A1 (no temporal order)
+  * ``wave``       - raw cropped waveform                   -> A5
+
+Features for a whole split are computed once and cached with ``cached_features``.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+
+from src.data import TARGET_SR, load_audio
+from src.paths import cache_dir
+
+N_FFT = 400        # 25 ms at 16 kHz
+HOP_LENGTH = 160   # 10 ms -> 100 frames per second
+N_MELS = 64
+N_MFCC = 40
+
+
+# --------------------------------------------------------------------------- waveform preprocessing
+def trim_silence(wav: np.ndarray, top_db: float = 30, pad_ms: int = 50, sr: int = TARGET_SR) -> np.ndarray:
+    """Strip leading/trailing audio quieter than ``top_db`` below the peak, keeping ``pad_ms`` margins."""
+    import librosa
+
+    _, (start, end) = librosa.effects.trim(wav, top_db=top_db, frame_length=N_FFT, hop_length=HOP_LENGTH)
+    pad = int(sr * pad_ms / 1000)
+    return wav[max(0, start - pad): min(len(wav), end + pad)]
+
+
+def fix_length(wav: np.ndarray, seconds: float, sr: int = TARGET_SR) -> np.ndarray:
+    """Centre-crop or symmetrically zero-pad to exactly ``seconds``."""
+    target = int(round(seconds * sr))
+    if len(wav) >= target:
+        start = (len(wav) - target) // 2
+        return wav[start: start + target]
+    left = (target - len(wav)) // 2
+    return np.pad(wav, (left, target - len(wav) - left))
+
+
+def energy_crop(wav: np.ndarray, seconds: float = 1.5, sr: int = TARGET_SR) -> np.ndarray:
+    """Keep the ``seconds``-long window with the highest energy (zero-pad if the clip is shorter)."""
+    target = int(round(seconds * sr))
+    if len(wav) <= target:
+        return fix_length(wav, seconds, sr)
+    cumulative = np.concatenate([[0.0], np.cumsum(wav.astype(np.float64) ** 2)])
+    window_energy = cumulative[target:] - cumulative[:-target]
+    start = int(np.argmax(window_energy))
+    return wav[start: start + target]
+
+
+def peak_normalise(wav: np.ndarray, peak: float = 0.95) -> np.ndarray:
+    top = np.abs(wav).max()
+    return wav if top < 1e-6 else (wav * (peak / top)).astype(np.float32)
+
+
+def preprocess(wav: np.ndarray, crop: str = "energy", seconds: float | None = 1.5,
+               top_db: float = 30, normalise: bool = True) -> np.ndarray:
+    """Apply the cropping strategy used throughout the project.
+
+    ``crop``: ``"energy"`` (fixed window around the loudest region), ``"trim"``
+    (silence trim, then ``fix_length`` if ``seconds`` is given, else variable
+    length - used by the HMM), or ``"none"`` (``fix_length`` only, if ``seconds``).
+    """
+    if crop == "energy":
+        if seconds is None:
+            raise ValueError("energy crop needs a fixed length in seconds")
+        wav = energy_crop(wav, seconds)
+    elif crop == "trim":
+        wav = trim_silence(wav, top_db)
+        if seconds is not None:
+            wav = fix_length(wav, seconds)
+    elif crop == "none":
+        if seconds is not None:
+            wav = fix_length(wav, seconds)
+    else:
+        raise ValueError("crop must be 'energy', 'trim' or 'none'")
+    return peak_normalise(wav) if normalise else wav
+
+
+# --------------------------------------------------------------------------- features
+def log_mel(wav: np.ndarray, sr: int = TARGET_SR, n_mels: int = N_MELS) -> np.ndarray:
+    """Log-mel spectrogram, shape (frames, n_mels), in dB."""
+    import librosa
+
+    mel = librosa.feature.melspectrogram(y=wav, sr=sr, n_fft=N_FFT, hop_length=HOP_LENGTH, n_mels=n_mels)
+    return librosa.power_to_db(mel, ref=1.0, top_db=80.0).T.astype(np.float32)
+
+
+def mfcc(wav: np.ndarray, sr: int = TARGET_SR, n_mfcc: int = N_MFCC, deltas: bool = True) -> np.ndarray:
+    """MFCCs (+ delta, delta-delta), shape (frames, n_mfcc * 3 if deltas else n_mfcc)."""
+    import librosa
+
+    mel_db = log_mel(wav, sr).T
+    coeffs = librosa.feature.mfcc(S=mel_db, n_mfcc=n_mfcc)
+    if deltas:
+        n_frames = coeffs.shape[1]
+        # librosa needs an odd delta window no longer than the clip; 9 frames (90 ms) normally.
+        width = 9 if n_frames >= 9 else max(3, n_frames if n_frames % 2 else n_frames - 1)
+        coeffs = np.vstack([coeffs, librosa.feature.delta(coeffs, width=width),
+                            librosa.feature.delta(coeffs, order=2, width=width)])
+    return coeffs.T.astype(np.float32)
+
+
+def mfcc_stats(wav: np.ndarray, sr: int = TARGET_SR, n_mfcc: int = N_MFCC) -> np.ndarray:
+    """Order-agnostic clip vector: mean, std, min, max of every MFCC/delta channel."""
+    frames = mfcc(wav, sr, n_mfcc)
+    return np.concatenate([frames.mean(0), frames.std(0), frames.min(0), frames.max(0)]).astype(np.float32)
+
+
+FEATURES = {
+    "logmel": log_mel,
+    "mfcc": mfcc,
+    "mfcc_stats": mfcc_stats,
+    "wave": lambda wav, **_: wav.astype(np.float32),
+}
+
+
+def extract(path, feature: str = "logmel", crop: str = "energy", seconds: float | None = 1.5,
+            top_db: float = 30, **feature_kwargs) -> np.ndarray:
+    """Load one clip and return its features."""
+    wav = preprocess(load_audio(path), crop=crop, seconds=seconds, top_db=top_db)
+    return FEATURES[feature](wav, **feature_kwargs)
+
+
+def is_variable_length(feature: str, seconds: float | None) -> bool:
+    """Frame features without a fixed clip length are returned as a list of (T_i, C) arrays."""
+    return seconds is None and feature not in ("mfcc_stats",)
+
+
+def extract_many(paths, feature: str = "logmel", n_jobs: int = -1, seconds: float | None = 1.5, **kwargs):
+    """Features for many clips in parallel.
+
+    Returns a stacked array, or a list of arrays when ``is_variable_length(feature, seconds)``.
+    """
+    from joblib import Parallel, delayed
+
+    out = Parallel(n_jobs=n_jobs)(delayed(extract)(p, feature, seconds=seconds, **kwargs) for p in paths)
+    return out if is_variable_length(feature, seconds) else np.stack(out)
+
+
+def cached_features(df, feature: str = "logmel", crop: str = "energy", seconds: float | None = 1.5,
+                    top_db: float = 30, n_jobs: int = -1, refresh: bool = False, **feature_kwargs):
+    """Features for every row of a split DataFrame (needs ``id`` and ``path``), cached on disk.
+
+    The cache key covers the clip ids and all preprocessing parameters, so
+    changing any setting creates a new cache file instead of silently reusing
+    stale features. Returns an array, or a list when ``is_variable_length(feature, seconds)``.
+    """
+    params = {"feature": feature, "crop": crop, "seconds": seconds, "top_db": top_db, **feature_kwargs}
+    key = hashlib.md5((json.dumps(params, sort_keys=True) + ",".join(df["id"])).encode()).hexdigest()[:10]
+    path = cache_dir() / f"{feature}_{crop}_{seconds}s_{key}.npz"
+
+    if path.exists() and not refresh:
+        stored = np.load(path, allow_pickle=False)
+        if "lengths" in stored:
+            return np.split(stored["X"], np.cumsum(stored["lengths"])[:-1])
+        return stored["X"]
+
+    X = extract_many(df["path"], feature, n_jobs=n_jobs, crop=crop, seconds=seconds, top_db=top_db, **feature_kwargs)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if isinstance(X, list):  # variable-length sequences: store concatenated frames + lengths (hmmlearn format)
+        np.savez_compressed(path, X=np.concatenate(X), lengths=np.array([len(x) for x in X]))
+    else:
+        np.savez_compressed(path, X=X)
+    return X
+
+
+class Standardizer:
+    """Per-channel mean/variance normalisation, fitted on the training split only.
+
+    Works on (N, T, C) frame features, (N, C) vectors, or a list of (T_i, C) arrays.
+    """
+
+    def __init__(self, eps: float = 1e-6):
+        self.eps = eps
+        self.mean_ = None
+        self.std_ = None
+
+    @staticmethod
+    def _frames(X) -> np.ndarray:
+        if isinstance(X, list):
+            return np.concatenate(X)
+        return X.reshape(-1, X.shape[-1])
+
+    def fit(self, X) -> "Standardizer":
+        frames = self._frames(X)
+        self.mean_ = frames.mean(0)
+        self.std_ = frames.std(0) + self.eps
+        return self
+
+    def transform(self, X):
+        if isinstance(X, list):
+            return [((x - self.mean_) / self.std_).astype(np.float32) for x in X]
+        return ((X - self.mean_) / self.std_).astype(np.float32)
+
+    def fit_transform(self, X):
+        return self.fit(X).transform(X)
