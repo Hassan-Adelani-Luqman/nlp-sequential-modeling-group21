@@ -73,7 +73,12 @@ def get_data_dir() -> Path:
 
 
 def get_output_dir() -> Path:
-    """Writable root for results/checkpoints (``/kaggle/working`` on Kaggle)."""
+    """Writable root for results/checkpoints (``/kaggle/working`` on Kaggle).
+
+    Override with ``SWN_OUTPUT_DIR``, e.g. to write to Google Drive on Colab or to a scratch folder for smoke runs.
+    """
+    if os.environ.get("SWN_OUTPUT_DIR"):
+        return Path(os.environ["SWN_OUTPUT_DIR"])
     return Path("/kaggle/working") if detect_env() == "kaggle" else REPO_ROOT
 
 

@@ -94,13 +94,27 @@ def log_experiment(row: dict, runs_dir: Path | str | None = None, overwrite: boo
     record["date"] = record["date"] or datetime.now().strftime("%Y-%m-%d %H:%M")
     record = {k: round(v, 4) if isinstance(v, float) else v for k, v in record.items()}
 
-    runs_dir = Path(runs_dir) if runs_dir else results_dir() / "runs"
-    runs_dir.mkdir(parents=True, exist_ok=True)
-    path = runs_dir / f"{exp_id}_seed{record['seed']}.json"
+    path = run_path(exp_id, record["seed"], runs_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() and not overwrite:
         raise FileExistsError(f"{path.name} already logged; use a new exp_id or overwrite=True")
     path.write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
     return path
+
+
+def run_path(exp_id: str, seed: int, runs_dir: Path | str | None = None) -> Path:
+    runs_dir = Path(runs_dir) if runs_dir else results_dir() / "runs"
+    return runs_dir / f"{exp_id}_seed{seed}.json"
+
+
+def load_run(exp_id: str, seed: int, runs_dir: Path | str | None = None) -> dict | None:
+    """The logged record of a run, or None if it has not been run yet.
+
+    Notebooks use this to reuse finished runs instead of retraining: this keeps
+    them fast to re-execute on Colab, while ``RERUN = True`` still reproduces everything.
+    """
+    path = run_path(exp_id, seed, runs_dir)
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
 def build_experiment_table(runs_dir: Path | str | None = None, out_csv: Path | str | None = None) -> pd.DataFrame:

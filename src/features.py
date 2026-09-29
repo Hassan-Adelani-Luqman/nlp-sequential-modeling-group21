@@ -241,6 +241,29 @@ def cached_features(df, feature: str = "logmel", crop: str = "energy", seconds: 
     return X
 
 
+def utterance_cmvn(seqs: list[np.ndarray], eps: float = 1e-6) -> list[np.ndarray]:
+    """Per-utterance cepstral mean and variance normalisation.
+
+    Each clip is normalised with its own mean and std. This removes stationary
+    channel effects (different phones and microphones across ~300 speakers)
+    that a global Standardizer cannot, which is standard practice for GMM-HMM ASR.
+    """
+    return [((s - s.mean(0)) / (s.std(0) + eps)).astype(np.float32) for s in seqs]
+
+
+def prefix_stats(path, fraction: float, seconds: float = 1.5, top_db: float = 30,
+                 n_mfcc: int = N_MFCC) -> np.ndarray:
+    """``mfcc_stats`` of only the first ``fraction`` of the spoken word (for the "how early" analysis).
+
+    The word is located by the centred energy window, then its leading and
+    trailing silence inside that window is trimmed, and the first ``fraction``
+    of what remains is kept (at least 100 ms, so delta features still fit).
+    """
+    word = trim_silence(energy_crop(load_audio(path), seconds), top_db=top_db, pad_ms=0)
+    keep = max(int(len(word) * fraction), TARGET_SR // 10)
+    return mfcc_stats(peak_normalise(word[:keep]), n_mfcc=n_mfcc)
+
+
 class Standardizer:
     """Per-channel mean/variance normalisation, fitted on the training split only.
 
