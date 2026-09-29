@@ -85,6 +85,62 @@ def compute_metrics(y_true, y_prob, label_names: list[str] | None = None) -> dic
     }
 
 
+# Word pairs that sound alike (EDA 6). tisa/sita are anagrams: same sounds, different order.
+KEY_PAIRS = [("tisa", "sita"), ("nne", "nane"), ("tatu", "tano"), ("saba", "sita")]
+
+
+def pair_confusion(y_true, y_pred, label_names: list[str], a: str, b: str) -> float:
+    """Share of clips of word ``a`` or ``b`` that were predicted as the other word of the pair."""
+    ia, ib = label_names.index(a), label_names.index(b)
+    y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
+    in_pair = np.isin(y_true, [ia, ib])
+    swapped = ((y_true == ia) & (y_pred == ib)) | ((y_true == ib) & (y_pred == ia))
+    return float(swapped[in_pair].mean()) if in_pair.any() else float("nan")
+
+
+# --------------------------------------------------------------------------- calibration
+def softmax(scores, temperature: float = 1.0) -> np.ndarray:
+    z = np.asarray(scores, dtype=float) / temperature
+    z = z - z.max(axis=1, keepdims=True)
+    e = np.exp(z)
+    return e / e.sum(axis=1, keepdims=True)
+
+
+def fit_temperature(scores, y_true, bounds: tuple[float, float] = (1e-3, 1e4)) -> float:
+    """Temperature T minimising the log loss of ``softmax(scores / T)`` (Guo et al., 2017).
+
+    ``scores`` are per-class logits: network logits, log-probabilities, or HMM log-likelihoods.
+    One scalar changes confidence but never the predicted class, so accuracy and F1 are unchanged.
+    """
+    from scipy.optimize import minimize_scalar
+
+    scores = np.asarray(scores, dtype=float)
+    y = np.asarray(y_true, dtype=int)
+    rows = np.arange(len(y))
+
+    def nll(log_t):
+        return -np.log(np.clip(softmax(scores, np.exp(log_t))[rows, y], 1e-12, None)).mean()
+
+    return float(np.exp(minimize_scalar(nll, bounds=np.log(bounds), method="bounded").x))
+
+
+def cross_fitted_temperature(scores, y_true, n_splits: int = 5, seed: int = 0):
+    """Out-of-fold calibrated probabilities on the split used for fitting the temperature.
+
+    Each fold is calibrated with a temperature fitted on the other folds, so the
+    resulting log loss is not optimistically biased. Returns ``(probs, T)``, where
+    ``T`` is fitted on all rows (use it on the test split later).
+    """
+    from sklearn.model_selection import StratifiedKFold
+
+    scores = np.asarray(scores, dtype=float)
+    y = np.asarray(y_true, dtype=int)
+    probs = np.zeros_like(scores)
+    for fit_idx, eval_idx in StratifiedKFold(n_splits, shuffle=True, random_state=seed).split(scores, y):
+        probs[eval_idx] = softmax(scores[eval_idx], fit_temperature(scores[fit_idx], y[fit_idx]))
+    return probs, fit_temperature(scores, y)
+
+
 # --------------------------------------------------------------------------- prediction files
 def save_predictions(
     exp_id: str,
@@ -144,27 +200,37 @@ def mcnemar_test(y_true, pred_a, pred_b) -> dict:
 
 
 # --------------------------------------------------------------------------- plots
-def plot_confusion_matrix(y_true, y_pred, label_names: list[str], title: str = "", normalize: bool = True, ax=None):
-    """Row-normalised confusion matrix (recall per true class on the diagonal)."""
+def plot_confusion_matrix(y_true, y_pred, label_names: list[str], title: str = "", normalize: bool = True,
+                          ax=None, annotate_min: float = 0.05, colorbar: bool = True):
+    """Row-normalised confusion matrix (recall per true class on the diagonal).
+
+    Only cells at or above ``annotate_min`` are labelled (the diagonal and the
+    real confusions), so a 12x12 matrix stays readable. The colour carries the rest.
+    """
     import matplotlib.pyplot as plt
+
+    from src.plotting import INK, SURFACE, blue_cmap
 
     cm = confusion_matrix(y_true, y_pred, labels=range(len(label_names)))
     values = cm / cm.sum(axis=1, keepdims=True).clip(min=1) if normalize else cm
     if ax is None:
-        _, ax = plt.subplots(figsize=(5, 4.5))
-    im = ax.imshow(values, cmap="Blues", vmin=0, vmax=1 if normalize else None)
+        _, ax = plt.subplots(figsize=(5.2, 4.6))
+    im = ax.imshow(values, cmap=blue_cmap(), vmin=0, vmax=1 if normalize else None)
     ax.set_xticks(range(len(label_names)), label_names, rotation=45, ha="right")
     ax.set_yticks(range(len(label_names)), label_names)
     ax.set_xlabel("Predicted")
     ax.set_ylabel("True")
     ax.set_title(title)
-    threshold = values.max() / 2
+    ax.grid(False)
+    threshold = values.max() * 0.55
     for i in range(len(label_names)):
         for j in range(len(label_names)):
-            text = f"{values[i, j]:.2f}" if normalize else str(values[i, j])
-            ax.text(j, i, text, ha="center", va="center", fontsize=8,
-                    color="white" if values[i, j] > threshold else "black")
-    ax.figure.colorbar(im, ax=ax, fraction=0.046)
+            if values[i, j] >= annotate_min:
+                text = f"{values[i, j]:.2f}".lstrip("0") if normalize else str(values[i, j])
+                ax.text(j, i, text, ha="center", va="center", fontsize=6.5,
+                        color=SURFACE if values[i, j] > threshold else INK)
+    if colorbar:
+        ax.figure.colorbar(im, ax=ax, fraction=0.046, pad=0.02).outline.set_visible(False)
     return ax
 
 
@@ -176,14 +242,14 @@ def plot_learning_curves(history: pd.DataFrame, title: str = "", axes=None):
     """
     import matplotlib.pyplot as plt
 
+    from src.plotting import SERIES
+
     if axes is None:
         _, axes = plt.subplots(1, 2, figsize=(10, 3.5))
-    axes[0].plot(history["epoch"], history["train_loss"], marker="o", label="train")
-    axes[0].plot(history["epoch"], history["val_loss"], marker="o", label="val")
+    axes[0].plot(history["epoch"], history["train_loss"], marker="o", color=SERIES[0], label="train")
+    axes[0].plot(history["epoch"], history["val_loss"], marker="o", color=SERIES[1], label="val")
     axes[0].set(xlabel="Epoch", ylabel="Cross-entropy loss", title=f"{title} loss".strip())
     axes[0].legend()
-    axes[1].plot(history["epoch"], history["val_macro_f1"], marker="o", color="tab:green")
+    axes[1].plot(history["epoch"], history["val_macro_f1"], marker="o", color=SERIES[0])
     axes[1].set(xlabel="Epoch", ylabel="Validation macro-F1", title=f"{title} macro-F1".strip())
-    for ax in axes:
-        ax.grid(alpha=0.3)
     return axes
