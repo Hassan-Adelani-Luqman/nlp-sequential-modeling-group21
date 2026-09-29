@@ -163,6 +163,70 @@ def test_significance_helpers():
     assert res["only_a_correct"] == 100 and res["p_value"] < 1e-6
 
 
+def test_temperature_scaling_recovers_overconfidence():
+    rng = np.random.default_rng(0)
+    logits = rng.normal(0, 2, size=(4000, 12))
+    y = np.array([rng.choice(12, p=p) for p in evaluate.softmax(logits)])
+    overconfident = 4.0 * logits  # a model 4x too confident
+    assert evaluate.fit_temperature(overconfident, y) == pytest.approx(4.0, rel=0.15)
+    probs, t = evaluate.cross_fitted_temperature(overconfident, y)
+    assert np.allclose(probs.sum(1), 1) and t == pytest.approx(4.0, rel=0.15)
+    assert (probs.argmax(1) == overconfident.argmax(1)).all()  # calibration never changes predictions
+
+
+def test_pair_confusion():
+    names = ["sita", "tisa", "moja"]
+    y_true = np.array([0, 0, 1, 1, 2])
+    y_pred = np.array([1, 0, 0, 1, 1])  # one sita->tisa, one tisa->sita; moja errors don't count
+    assert evaluate.pair_confusion(y_true, y_pred, names, "tisa", "sita") == 0.5
+
+
+def test_gmmhmm_uses_temporal_order():
+    """Two classes made of the same frames in opposite order: only an order-aware model can separate them."""
+    from src.models.baselines import GMMHMMClassifier
+
+    rng = np.random.default_rng(0)
+    seqs, y = [], []
+    for label, (first, second) in enumerate([(-2.0, 2.0), (2.0, -2.0)]):  # like "tisa" vs "sita"
+        for _ in range(30):
+            half = rng.integers(10, 20)
+            seq = np.vstack([np.full((half, 3), first), np.full((half, 3), second)]) + 0.3 * rng.standard_normal((2 * half, 3))
+            seqs.append(seq.astype(np.float32))
+            y.append(label)
+    y = np.array(y)
+    assert np.allclose(np.mean([s.mean(0) for s in seqs], 0), 0, atol=0.2)  # same frame statistics
+
+    idx = rng.permutation(len(y))
+    train, test = idx[:40], idx[40:]
+    clf = GMMHMMClassifier(n_states=2, n_mix=1, n_iter=10, n_jobs=1).fit([seqs[i] for i in train], y[train])
+    assert (clf.predict([seqs[i] for i in test]) == y[test]).mean() >= 0.95
+    proba = clf.predict_proba([seqs[i] for i in test])
+    assert proba.shape == (20, 2) and np.allclose(proba.sum(1), 1)
+
+
+def test_gmmhmm_map_priors_survive_starved_components():
+    """Far more states x mixtures than frames: ML EM can starve components into NaN; MAP priors must not."""
+    from src.models.baselines import GMMHMMClassifier
+
+    rng = np.random.default_rng(1)
+    seqs = [rng.standard_normal((int(n), 3)).astype(np.float32) for n in rng.integers(8, 14, size=4)]
+    model = GMMHMMClassifier(n_states=8, n_mix=4, n_iter=15, n_jobs=1)._fit_one(seqs)
+    for params in (model.transmat_, model.means_, model.covars_, model.weights_):
+        assert np.isfinite(params).all()
+    assert np.isfinite(model.score(seqs[0]))
+
+
+def test_a1_pipeline():
+    from src.models.baselines import tune_a1
+
+    rng = np.random.default_rng(0)
+    X = np.vstack([rng.normal(c, 1.0, size=(30, 8)) for c in range(3)])
+    y = np.repeat(np.arange(3), 30)
+    search = tune_a1(X, y, kind="logreg", n_splits=3, n_jobs=1)
+    assert search.best_estimator_.predict_proba(X).shape == (90, 3)
+    assert search.best_score_ > -0.5  # CV log loss on well-separated blobs
+
+
 def test_prediction_roundtrip(tmp_path):
     prob = np.random.default_rng(0).dirichlet(np.ones(12), size=8)
     path = evaluate.save_predictions("A1-R0-01", 42, "val", [f"d{i}" for i in range(8)], [0] * 8, prob, WORDS, tmp_path)
