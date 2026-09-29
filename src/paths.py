@@ -22,7 +22,7 @@ SPLITS_DIR = REPO_ROOT / "data" / "splits"
 CONFIGS_DIR = REPO_ROOT / "configs"
 
 # Private Kaggle dataset shared with the group, as "<owner>/<slug>".
-KAGGLE_DATASET = os.environ.get("SWN_KAGGLE_DATASET", "group21-swahili-audio")
+KAGGLE_DATASET = os.environ.get("SWN_KAGGLE_DATASET", "luqmanhassanadelani/group21-swahili-audio")
 TRAIN_FILE = "Train.csv"
 
 

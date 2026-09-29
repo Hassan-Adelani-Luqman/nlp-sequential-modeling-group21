@@ -1,5 +1,7 @@
 # Data
 
+Group copy on Kaggle (private, members only): <https://www.kaggle.com/datasets/luqmanhassanadelani/group21-swahili-audio>
+
 We use the **Swahili Audio Classification** data from Zindi:
 <https://zindi.world/competitions/swahili-audio-classification/data>
 
@@ -46,8 +48,7 @@ The data is found automatically in either of these places:
 - `/content/drive/MyDrive/group21-swahili-audio/`: upload the CSVs and the unzipped `Swahili_words/` to your Drive and mount it.
 - `/content/data/raw/`, by downloading from Kaggle with your own API token:
   ```python
-  import os
-  os.environ["SWN_KAGGLE_DATASET"] = "<owner-username>/group21-swahili-audio"
+  # default is luqmanhassanadelani/group21-swahili-audio; override with SWN_KAGGLE_DATASET if needed
   # put kaggle.json in ~/.kaggle/ first (Kaggle → Settings → Create New Token)
   from src.paths import download_from_kaggle
   download_from_kaggle()

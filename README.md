@@ -36,7 +36,7 @@ The full project plan is in [Plan.md](Plan.md).
 2. **Add Input** → the private dataset `group21-swahili-audio` (see [data/README.md](data/README.md)).
 3. First cell:
    ```python
-   !git clone https://github.com/<org>/nlp-sequential-modeling-group21.git
+   !git clone https://github.com/Hassan-Adelani-Luqman/nlp-sequential-modeling-group21.git
    %cd nlp-sequential-modeling-group21
    !pip install -q -r requirements.txt
    ```
