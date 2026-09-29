@@ -71,3 +71,36 @@ python -m src.data          # must print "OK - matches manifest"
 ```
 
 If the split ever has to change, agree it with the whole group and re-run every experiment.
+
+## 5. Shared features (`group21-swahili-audio-features`)
+Building all three presets takes about a minute on a multi-core laptop, and a few minutes on
+Kaggle's CPUs. To avoid every member redoing that in every GPU session, and to guarantee that
+everyone uses byte-identical inputs, M1 builds them once (~265 MB) and shares them as a
+second private Kaggle dataset:
+<https://www.kaggle.com/datasets/luqmanhassanadelani/group21-swahili-audio-features>
+
+```bash
+python -m src.features      # writes results/cache/*.npz + features_manifest.json
+```
+
+| Preset | Used by | Shape (train / val / test) |
+|---|---|---|
+| `logmel` | A3, A4 | (2940 / 630 / 630, 151, 64) |
+| `mfcc_stats` | A1 | (2940 / 630 / 630, 480) |
+| `mfcc13_trim` | A2 | 2940 / 630 / 630 variable-length sequences of 39-d frames (median 186 frames; long noisy tails, so tune `top_db` in Phase 4) |
+
+`features_manifest.json` lists each file with its preset, split, shape, the split hash and the
+feature version.
+
+**Using it:** in a Kaggle notebook, **Add Input → group21-swahili-audio-features** alongside the
+audio dataset. `cached_features(df, **PRESETS[...])` looks there automatically. Elsewhere, set
+`SWN_FEATURE_CACHE=/path/to/the/folder`.
+
+**It stays in sync by itself.** Cache file names include a hash of the clip ids, every
+preprocessing setting and `FEATURE_VERSION`:
+- If anything changes, the old files no longer match and the features are recomputed.
+- Stale features can never be loaded by mistake.
+- After a version bump, M1 rebuilds the cache and uploads a new dataset version.
+
+These features are derived from the competition audio, so the same rule applies: keep the
+dataset **private** and share it only with the group.

@@ -59,14 +59,14 @@ pytest -q                                           # smoke tests
 ## Using the shared code
 ```python
 from src.data import load_split, label_names
-from src.features import cached_features, Standardizer
+from src.features import PRESETS, cached_features, Standardizer
 from src.evaluate import compute_metrics, save_predictions
 from src.utils import set_seed, log_experiment
 
 set_seed(42)
 train, val = load_split("train"), load_split("val")          # id, path, label, gloss, label_id
-X_tr = cached_features(train, "logmel")                        # (2940, 151, 64), 1.5 s energy window
-X_va = cached_features(val, "logmel")
+X_tr = cached_features(train, **PRESETS["logmel"])             # (2940, 151, 64), centred 1.5 s energy window
+X_va = cached_features(val, **PRESETS["logmel"])
 scaler = Standardizer().fit(X_tr)                              # fit on train only
 X_tr, X_va = scaler.transform(X_tr), scaler.transform(X_va)
 # ... train a model, get val probabilities `prob` (630 x 12) ...
@@ -77,6 +77,18 @@ log_experiment({"exp_id": "A3-R1-01", "seed": 42, "member": "M2",
                 "val_acc": metrics["accuracy"], "change_vs_previous": "first run",
                 "rationale": "default config from Plan.md"})
 ```
+
+**Shared presets.** Use these so everyone trains on identical features:
+
+| Preset | Output | Used by |
+|---|---|---|
+| `PRESETS["logmel"]` | (N, 151, 64) | A3, A4 |
+| `PRESETS["mfcc_stats"]` | (N, 480) | A1 |
+| `PRESETS["mfcc13_trim"]` | list of (T_i, 39) | A2 |
+
+Build them all once with `python -m src.features`. On Kaggle, attach the group's
+**features dataset** and `cached_features` loads from it instead of re-extracting
+(see [data/README.md](data/README.md)).
 
 Feature options (`src/features.py`):
 
@@ -91,7 +103,7 @@ Crop options:
 
 | `crop` | Behaviour |
 |---|---|
-| `"energy"` (default) | Fixed window over the loudest part of the clip |
+| `"energy"` (default) | Fixed window over the loudest part of the clip, with the word centred |
 | `"trim"` + `seconds=None` | Silence-trimmed, variable length; returns a list, for the HMM |
 | `"none"` | Only padding or cropping to `seconds` |
 
