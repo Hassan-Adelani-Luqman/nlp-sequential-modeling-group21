@@ -23,12 +23,18 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import time
 from pathlib import Path
 
 import numpy as np
 
 from src.data import TARGET_SR, load_audio
 from src.paths import cache_dir
+
+# Part of every cache key. Bump it whenever preprocessing or feature code changes,
+# so old cached features (local or on Kaggle) are never silently reused.
+FEATURE_VERSION = 2  # v2: energy_crop centres the word in the window
 
 N_FFT = 400        # 25 ms at 16 kHz
 HOP_LENGTH = 160   # 10 ms -> 100 frames per second
@@ -56,14 +62,26 @@ def fix_length(wav: np.ndarray, seconds: float, sr: int = TARGET_SR) -> np.ndarr
     return np.pad(wav, (left, target - len(wav) - left))
 
 
-def energy_crop(wav: np.ndarray, seconds: float = 1.5, sr: int = TARGET_SR) -> np.ndarray:
-    """Keep the ``seconds``-long window with the highest energy (zero-pad if the clip is shorter)."""
+def energy_crop(wav: np.ndarray, seconds: float = 1.5, sr: int = TARGET_SR, tolerance: float = 0.01) -> np.ndarray:
+    """Keep the ``seconds``-long window with the highest energy, with the word centred in it.
+
+    When the whole word fits in the window, many start positions hold almost the
+    same energy and a plain argmax lands anywhere on that plateau (decided by
+    background noise), so the word would sit at a random offset. We therefore
+    take the middle of the contiguous run of starts within ``tolerance`` of the
+    maximum energy around the argmax. Clips shorter than the window are zero-padded.
+    """
     target = int(round(seconds * sr))
     if len(wav) <= target:
         return fix_length(wav, seconds, sr)
     cumulative = np.concatenate([[0.0], np.cumsum(wav.astype(np.float64) ** 2)])
     window_energy = cumulative[target:] - cumulative[:-target]
-    start = int(np.argmax(window_energy))
+    best = int(np.argmax(window_energy))
+    below = np.flatnonzero(window_energy < (1 - tolerance) * window_energy[best])
+    before, after = below[below < best], below[below > best]
+    lo = before[-1] + 1 if before.size else 0
+    hi = after[0] - 1 if after.size else len(window_energy) - 1
+    start = (lo + hi) // 2
     return wav[start: start + target]
 
 
@@ -157,23 +175,62 @@ def extract_many(paths, feature: str = "logmel", n_jobs: int = -1, seconds: floa
     return out if is_variable_length(feature, seconds) else np.stack(out)
 
 
+# Default feature sets, one per model family. Use them as ``cached_features(df, **PRESETS["logmel"])``
+# so every member computes (and shares) identical features.
+PRESETS = {
+    "logmel": {"feature": "logmel", "crop": "energy", "seconds": 1.5},                        # A3, A4
+    "mfcc_stats": {"feature": "mfcc_stats", "crop": "energy", "seconds": 1.5},                # A1
+    "mfcc13_trim": {"feature": "mfcc", "crop": "trim", "seconds": None, "n_mfcc": 13},       # A2 (variable length)
+}
+
+
+def cache_filename(df, feature: str = "logmel", crop: str = "energy", seconds: float | None = 1.5,
+                   top_db: float = 30, **feature_kwargs) -> str:
+    """Deterministic cache file name for these clips and settings (same on every machine)."""
+    params = {"feature": feature, "crop": crop, "seconds": seconds, "top_db": top_db,
+              "version": FEATURE_VERSION, **feature_kwargs}
+    key = hashlib.md5((json.dumps(params, sort_keys=True) + ",".join(df["id"])).encode()).hexdigest()[:10]
+    length = f"{seconds}s" if seconds is not None else "varlen"
+    return f"{feature}_{crop}_{length}_v{FEATURE_VERSION}_{key}.npz"
+
+
+def _cache_search_dirs() -> list[Path]:
+    """The writable cache first, then read-only copies: ``SWN_FEATURE_CACHE`` and any Kaggle input."""
+    dirs = [cache_dir()]
+    if os.environ.get("SWN_FEATURE_CACHE"):
+        dirs.append(Path(os.environ["SWN_FEATURE_CACHE"]))
+    kaggle_input = Path("/kaggle/input")
+    if kaggle_input.is_dir():
+        dirs.extend(sorted(p for p in kaggle_input.iterdir() if p.is_dir()))
+    return dirs
+
+
+def find_cached(name: str) -> Path | None:
+    for folder in _cache_search_dirs():
+        for candidate in (folder / name, folder / "cache" / name):
+            if candidate.is_file():
+                return candidate
+    return None
+
+
 def cached_features(df, feature: str = "logmel", crop: str = "energy", seconds: float | None = 1.5,
                     top_db: float = 30, n_jobs: int = -1, refresh: bool = False, **feature_kwargs):
     """Features for every row of a split DataFrame (needs ``id`` and ``path``), cached on disk.
 
     The cache key covers the clip ids and all preprocessing parameters, so
     changing any setting creates a new cache file instead of silently reusing
-    stale features. Returns an array, or a list when ``is_variable_length(feature, seconds)``.
+    stale features. Cached files are also found in read-only locations, such as
+    the group's features dataset attached as a Kaggle input, so GPU sessions skip
+    extraction. Returns an array, or a list when ``is_variable_length(feature, seconds)``.
     """
-    params = {"feature": feature, "crop": crop, "seconds": seconds, "top_db": top_db, **feature_kwargs}
-    key = hashlib.md5((json.dumps(params, sort_keys=True) + ",".join(df["id"])).encode()).hexdigest()[:10]
-    path = cache_dir() / f"{feature}_{crop}_{seconds}s_{key}.npz"
-
-    if path.exists() and not refresh:
-        stored = np.load(path, allow_pickle=False)
+    name = cache_filename(df, feature, crop, seconds, top_db, **feature_kwargs)
+    found = None if refresh else find_cached(name)
+    if found is not None:
+        stored = np.load(found, allow_pickle=False)
         if "lengths" in stored:
             return np.split(stored["X"], np.cumsum(stored["lengths"])[:-1])
         return stored["X"]
+    path = cache_dir() / name
 
     X = extract_many(df["path"], feature, n_jobs=n_jobs, crop=crop, seconds=seconds, top_db=top_db, **feature_kwargs)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -214,3 +271,38 @@ class Standardizer:
 
     def fit_transform(self, X):
         return self.fit(X).transform(X)
+
+
+def build_cache(presets: dict | None = None, n_jobs: int = -1, refresh: bool = False) -> dict:
+    """Compute every preset for the train/val/test splits and write ``cache/features_manifest.json``.
+
+    Run once (``python -m src.features``); upload ``results/cache/`` as the group's
+    private features dataset so nobody has to re-extract on Kaggle.
+    """
+    from src.data import load_splits, split_hash
+
+    presets = presets or PRESETS
+    splits = load_splits()
+    manifest = {"split_hash": split_hash(), "feature_version": FEATURE_VERSION, "presets": {}}
+    for preset, params in presets.items():
+        manifest["presets"][preset] = {"params": params, "splits": {}}
+        for split, df in splits.items():
+            start = time.time()
+            X = cached_features(df, n_jobs=n_jobs, refresh=refresh, **params)
+            shape = [len(X), "variable", int(X[0].shape[1])] if isinstance(X, list) else list(X.shape)
+            manifest["presets"][preset]["splits"][split] = {"file": cache_filename(df, **params), "shape": shape}
+            print(f"{preset:12s} {split:5s} shape={shape}  ({time.time() - start:.0f}s)", flush=True)
+    out = cache_dir() / "features_manifest.json"
+    out.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return manifest
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Precompute the shared feature presets for all splits.")
+    parser.add_argument("--refresh", action="store_true", help="recompute even if cached")
+    parser.add_argument("--n-jobs", type=int, default=-1)
+    args = parser.parse_args()
+    build_cache(n_jobs=args.n_jobs, refresh=args.refresh)
+    print(f"cache: {cache_dir()}")

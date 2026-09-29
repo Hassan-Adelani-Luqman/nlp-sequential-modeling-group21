@@ -89,6 +89,9 @@ def test_energy_crop_finds_the_word():
     crop = features.energy_crop(wav, seconds=1.0)
     assert len(crop) == SR
     assert (crop ** 2).sum() > 0.95 * (wav ** 2).sum()  # the burst is inside the window
+    energy = crop.astype(np.float64) ** 2
+    centroid_s = (np.arange(len(crop)) * energy).sum() / energy.sum() / SR
+    assert centroid_s == pytest.approx(0.5, abs=0.05)  # ... and centred in it, not at a noise-chosen offset
     assert len(features.energy_crop(wav[: SR // 2], seconds=1.0)) == SR  # short clips are padded
 
 
@@ -124,6 +127,16 @@ def test_cached_features_roundtrip(fake_data, tmp_path, monkeypatch):
     assert isinstance(seqs, list) and len(seqs) == 36 and seqs[0].shape[1] == 39
     again = features.cached_features(val, "mfcc", crop="trim", seconds=None, n_jobs=1, n_mfcc=13)
     assert all(np.array_equal(a, b) for a, b in zip(seqs, again))
+
+    # A read-only copy (e.g. the group's features dataset attached on Kaggle) is used without re-extracting.
+    shared = tmp_path / "shared_features"
+    shared.mkdir()
+    name = features.cache_filename(val, "logmel")
+    shutil.move(tmp_path / "cache" / name, shared / name)
+    monkeypatch.setenv("SWN_FEATURE_CACHE", str(shared))
+    monkeypatch.setattr(features, "extract_many", lambda *a, **k: pytest.fail("should load from the shared cache"))
+    assert np.array_equal(X, features.cached_features(val, "logmel"))
+    assert "_v" in name  # feature version is part of the key
 
     Z = features.Standardizer().fit_transform(X)
     assert np.allclose(Z.reshape(-1, 64).mean(0), 0, atol=1e-3)
