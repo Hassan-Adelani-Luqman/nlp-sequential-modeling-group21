@@ -1,0 +1,20 @@
+{
+  "exp_id": "A2-R0-01",
+  "date": "2026-09-29 22:56",
+  "member": "M1",
+  "approach": "A2",
+  "round": "R0",
+  "config_file": "notebooks/02_baselines.ipynb",
+  "seed": 42,
+  "change_vs_previous": "first A2 run: 5 states x 2 Gaussians, silence trim (top_db 30), global standardisation",
+  "rationale": "classic left-to-right word HMM; the order-aware classical reference point",
+  "val_macro_f1": 0.533,
+  "val_logloss": 1.6495,
+  "val_acc": 0.5317,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 3.3038,
+  "gpu": "cpu",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"trim\", \"seconds\": null, \"n_mfcc\": 13}, \"cmvn\": false, \"n_states\": 5, \"n_mix\": 2, \"temperature\": 0.7554723998677341, \"median_frames\": 208.0}"
+}

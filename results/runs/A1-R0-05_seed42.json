@@ -1,0 +1,20 @@
+{
+  "exp_id": "A1-R0-05",
+  "date": "2026-09-29 22:52",
+  "member": "M1",
+  "approach": "A1",
+  "round": "R0",
+  "config_file": "notebooks/02_baselines.ipynb",
+  "seed": 42,
+  "change_vs_previous": "silence trim (top_db 30) instead of the energy window",
+  "rationale": "the other way of locating the word; trimmed clips keep noisy tails",
+  "val_macro_f1": 0.7575,
+  "val_logloss": 0.7895,
+  "val_acc": 0.7571,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.2597,
+  "gpu": "cpu",
+  "notes": "{\"kind\": \"logreg\", \"features\": {\"feature\": \"mfcc_stats\", \"crop\": \"trim\", \"seconds\": null, \"n_mfcc\": 13}, \"best_params\": {\"C\": 0.1}, \"cv_logloss\": 0.8507134199142456, \"n_features\": 156}"
+}

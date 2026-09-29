@@ -1,0 +1,20 @@
+{
+  "exp_id": "A2-R0-09",
+  "date": "2026-09-29 23:18",
+  "member": "M1",
+  "approach": "A2",
+  "round": "R0",
+  "config_file": "notebooks/02_baselines.ipynb",
+  "seed": 42,
+  "change_vs_previous": "5 states x 4 Gaussians per state",
+  "rationale": "grid over HMM capacity on the chosen preprocessing",
+  "val_macro_f1": 0.9431,
+  "val_logloss": 0.2723,
+  "val_acc": 0.9429,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 3.4913,
+  "gpu": "cpu",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"energy\", \"seconds\": 1.5, \"n_mfcc\": 13}, \"cmvn\": true, \"n_states\": 5, \"n_mix\": 4, \"temperature\": 0.37721739149527256, \"median_frames\": 151.0}"
+}

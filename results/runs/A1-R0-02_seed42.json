@@ -1,0 +1,20 @@
+{
+  "exp_id": "A1-R0-02",
+  "date": "2026-09-29 22:52",
+  "member": "M1",
+  "approach": "A1",
+  "round": "R0",
+  "config_file": "notebooks/02_baselines.ipynb",
+  "seed": 42,
+  "change_vs_previous": "MFCC-40 instead of MFCC-13 (480-d)",
+  "rationale": "finer spectral detail may separate similar vowels (nne/nane, tatu/tano)",
+  "val_macro_f1": 0.743,
+  "val_logloss": 0.8801,
+  "val_acc": 0.7429,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 6.729,
+  "gpu": "cpu",
+  "notes": "{\"kind\": \"svm\", \"features\": {\"feature\": \"mfcc_stats\", \"crop\": \"energy\", \"seconds\": 1.5}, \"best_params\": {\"C\": 10, \"gamma\": 0.001}, \"cv_logloss\": 0.9207736521890112, \"n_features\": 480}"
+}

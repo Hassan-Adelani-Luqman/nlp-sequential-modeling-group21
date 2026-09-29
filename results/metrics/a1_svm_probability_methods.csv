@@ -1,0 +1,4 @@
+method,val_logloss,val_acc,ece
+SVC(probability=True): libsvm pairwise Platt,0.8800837967017341,0.7428571428571429,0.10233209163519409
+"CalibratedClassifierCV, sigmoid (recommended replacement)",1.2300244830160971,0.734920634920635,0.2136592102293845
+"CalibratedClassifierCV, temperature",1.153027594479333,0.7365079365079366,0.17604476890447388

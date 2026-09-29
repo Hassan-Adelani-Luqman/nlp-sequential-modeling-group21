@@ -1,0 +1,20 @@
+{
+  "exp_id": "A1-R0-04",
+  "date": "2026-09-29 22:52",
+  "member": "M1",
+  "approach": "A1",
+  "round": "R0",
+  "config_file": "notebooks/02_baselines.ipynb",
+  "seed": 42,
+  "change_vs_previous": "no crop: statistics over the whole clip (2-62 s)",
+  "rationale": "tests whether the energy window helps, or whether the model copes with silence and noise",
+  "val_macro_f1": 0.7348,
+  "val_logloss": 0.8208,
+  "val_acc": 0.7349,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.2584,
+  "gpu": "cpu",
+  "notes": "{\"kind\": \"logreg\", \"features\": {\"feature\": \"mfcc_stats\", \"crop\": \"none\", \"seconds\": null, \"n_mfcc\": 13}, \"best_params\": {\"C\": 0.1}, \"cv_logloss\": 0.8598329782485962, \"n_features\": 156}"
+}

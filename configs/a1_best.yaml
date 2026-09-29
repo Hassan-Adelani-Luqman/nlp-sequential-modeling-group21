@@ -1,0 +1,20 @@
+approach: A1
+exp_id: A1-R0-03
+selected_by: lowest validation log loss in round R0
+params:
+  kind: logreg
+  features:
+    feature: mfcc_stats
+    crop: energy
+    seconds: 1.5
+    n_mfcc: 13
+extra:
+  best_params:
+    C: 0.1
+  cv_logloss: 0.7420045375823975
+  n_features: 156
+val:
+  log_loss: 0.725
+  accuracy: 0.7794
+  macro_f1: 0.7789
+  ece: 0.0355

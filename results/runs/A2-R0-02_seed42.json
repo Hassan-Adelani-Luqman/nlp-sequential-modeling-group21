@@ -1,0 +1,20 @@
+{
+  "exp_id": "A2-R0-02",
+  "date": "2026-09-29 22:59",
+  "member": "M1",
+  "approach": "A2",
+  "round": "R0",
+  "config_file": "notebooks/02_baselines.ipynb",
+  "seed": 42,
+  "change_vs_previous": "+ per-utterance CMVN",
+  "rationale": "~300 speakers on different phones: remove each clip's channel offset, as in classic ASR",
+  "val_macro_f1": 0.7591,
+  "val_logloss": 0.9313,
+  "val_acc": 0.7556,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 3.5648,
+  "gpu": "cpu",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"trim\", \"seconds\": null, \"n_mfcc\": 13}, \"cmvn\": true, \"n_states\": 5, \"n_mix\": 2, \"temperature\": 0.23878018465030215, \"median_frames\": 208.0}"
+}

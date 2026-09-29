@@ -1,0 +1,20 @@
+{
+  "exp_id": "A2-R0-04",
+  "date": "2026-09-29 23:06",
+  "member": "M1",
+  "approach": "A2",
+  "round": "R0",
+  "config_file": "notebooks/02_baselines.ipynb",
+  "seed": 42,
+  "change_vs_previous": "stricter silence trim (top_db 20) instead of top_db 30",
+  "rationale": "cut more of the noisy tails while keeping each word's natural length",
+  "val_macro_f1": 0.8107,
+  "val_logloss": 0.6124,
+  "val_acc": 0.8095,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 3.0316,
+  "gpu": "cpu",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"trim\", \"seconds\": null, \"n_mfcc\": 13, \"top_db\": 20}, \"cmvn\": true, \"n_states\": 5, \"n_mix\": 2, \"temperature\": 0.37042951711599664, \"median_frames\": 68.0}"
+}
