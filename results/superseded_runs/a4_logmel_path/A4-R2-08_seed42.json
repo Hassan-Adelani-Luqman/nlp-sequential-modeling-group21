@@ -1,0 +1,20 @@
+{
+  "exp_id": "A4-R2-08",
+  "date": "2026-09-30 13:07",
+  "member": "M3",
+  "approach": "A4",
+  "round": "R2",
+  "config_file": "notebooks/04_tcresnet.ipynb",
+  "seed": 42,
+  "change_vs_previous": "kernel 15 instead of 9",
+  "rationale": "wider temporal filters see more of the word per layer",
+  "val_macro_f1": 0.9651,
+  "val_logloss": 0.1461,
+  "val_acc": 0.9651,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.9252,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"energy\", \"seconds\": 2.0}, \"model\": {\"blocks\": 3, \"width\": 1.5, \"kernel\": 15, \"dropout\": 0.5}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"full\", \"best_epoch\": 28, \"epochs_run\": 33, \"temperature\": 0.6777351172236938, \"n_params\": 234948, \"receptive_field_ms\": 2970}"
+}

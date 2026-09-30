@@ -1,0 +1,118 @@
+{
+  "params": {
+    "features": {
+      "feature": "mfcc",
+      "crop": "energy",
+      "seconds": 1.5,
+      "n_mfcc": 40
+    },
+    "model": {
+      "blocks": 3,
+      "width": 1.5,
+      "kernel": 9,
+      "dropout": 0.5
+    },
+    "train": {
+      "epochs": 40,
+      "batch_size": 64,
+      "lr": 0.001,
+      "patience": 5
+    },
+    "augment": "full"
+  },
+  "extra": {
+    "best_epoch": 6,
+    "epochs_run": 11,
+    "temperature": 9999.934151472771,
+    "n_params": 149988,
+    "receptive_field_ms": 1710
+  },
+  "metrics": {
+    "macro_f1": 0.01270772238514174,
+    "weighted_f1": 0.0125866964576642,
+    "accuracy": 0.08253968253968254,
+    "log_loss": 2.484911382407897,
+    "roc_auc_ovr": 0.5110348603211635,
+    "ece": 0.0008231352843034445,
+    "per_class": {
+      "hapana": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 53
+      },
+      "kumi": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 52
+      },
+      "mbili": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 53
+      },
+      "moja": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 52
+      },
+      "nane": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 52
+      },
+      "ndio": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 53
+      },
+      "nne": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 52
+      },
+      "saba": {
+        "precision": 0.08253968253968254,
+        "recall": 1.0,
+        "f1": 0.15249266862170088,
+        "support": 52
+      },
+      "sita": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 53
+      },
+      "tano": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 53
+      },
+      "tatu": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 53
+      },
+      "tisa": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 52
+      }
+    }
+  },
+  "pair_confusion": {
+    "tisa/sita": 0.0,
+    "nne/nane": 0.0,
+    "tatu/tano": 0.0,
+    "saba/sita": 0.5047619047619047
+  }
+}

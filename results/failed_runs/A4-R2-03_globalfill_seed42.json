@@ -1,0 +1,20 @@
+{
+  "exp_id": "A4-R2-03",
+  "date": "2026-09-30 13:02",
+  "member": "M3",
+  "approach": "A4",
+  "round": "R2",
+  "config_file": "notebooks/04_tcresnet.ipynb",
+  "seed": 42,
+  "change_vs_previous": "MFCC-40 + delta + delta-delta (120 channels) instead of log-mel 64",
+  "rationale": "Choi et al. used MFCC inputs; test them against the less-compressed log-mel",
+  "val_macro_f1": 0.0127,
+  "val_logloss": 2.4849,
+  "val_acc": 0.0825,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 1.4618,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"energy\", \"seconds\": 1.5, \"n_mfcc\": 40}, \"model\": {\"blocks\": 3, \"width\": 1.5, \"kernel\": 9, \"dropout\": 0.5}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"full\", \"best_epoch\": 6, \"epochs_run\": 11, \"temperature\": 9999.934151472771, \"n_params\": 149988, \"receptive_field_ms\": 1710}"
+}

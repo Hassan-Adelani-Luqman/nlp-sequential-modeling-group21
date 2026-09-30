@@ -1,0 +1,20 @@
+{
+  "exp_id": "A4-R2-06",
+  "date": "2026-09-30 13:06",
+  "member": "M3",
+  "approach": "A4",
+  "round": "R2",
+  "config_file": "notebooks/04_tcresnet.ipynb",
+  "seed": 42,
+  "change_vs_previous": "silence trim (top_db 30) + fixed length instead of the energy window",
+  "rationale": "the other way of locating the word; it failed for the HMM and for A3",
+  "val_macro_f1": 0.9259,
+  "val_logloss": 0.2687,
+  "val_acc": 0.9254,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 1.3881,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"trim\", \"seconds\": 2.0}, \"model\": {\"blocks\": 3, \"width\": 1.5, \"kernel\": 9, \"dropout\": 0.5}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"full\", \"best_epoch\": 33, \"epochs_run\": 38, \"temperature\": 0.6319203142197941, \"n_params\": 145956, \"receptive_field_ms\": 1710}"
+}

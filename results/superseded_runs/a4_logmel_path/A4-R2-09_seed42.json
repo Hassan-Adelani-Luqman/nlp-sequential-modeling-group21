@@ -1,0 +1,20 @@
+{
+  "exp_id": "A4-R2-09",
+  "date": "2026-09-30 13:08",
+  "member": "M3",
+  "approach": "A4",
+  "round": "R2",
+  "config_file": "notebooks/04_tcresnet.ipynb",
+  "seed": 42,
+  "change_vs_previous": "width 1.0 instead of 1.5 (fewer channels)",
+  "rationale": "is a smaller model enough with ~245 clips per word?",
+  "val_macro_f1": 0.962,
+  "val_logloss": 0.1682,
+  "val_acc": 0.9619,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 1.1416,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"energy\", \"seconds\": 2.0}, \"model\": {\"blocks\": 3, \"width\": 1.0, \"kernel\": 9, \"dropout\": 0.5}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"full\", \"best_epoch\": 33, \"epochs_run\": 38, \"temperature\": 0.6726385567969967, \"n_params\": 66300, \"receptive_field_ms\": 1710}"
+}
