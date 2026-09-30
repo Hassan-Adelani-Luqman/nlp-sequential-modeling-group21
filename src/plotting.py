@@ -75,6 +75,32 @@ def apply_style() -> None:
     })
 
 
+def progression_chart(df, best_id: str, color: str, title: str, name: str | None = None):
+    """Validation log loss and accuracy per run (one bar each); the selected run is highlighted, the rest greyed.
+
+    ``df`` is indexed by exp_id with ``val_logloss`` and ``val_acc`` columns (``ExperimentRunner.summary``).
+    """
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 0.45 * len(df) + 1.2), sharey=True)
+    ids = list(df.index)[::-1]
+    colors = [color if i == best_id else DEEMPHASIS for i in ids]
+    for ax, col, label, fmt in [(axes[0], "val_logloss", "Validation log loss (lower is better)", "{:.3f}"),
+                                (axes[1], "val_acc", "Validation accuracy", "{:.1%}")]:
+        vals = df.loc[ids, col]
+        ax.barh(ids, vals, color=colors, height=0.6)
+        for y, v in enumerate(vals):
+            ax.text(v, y, "  " + fmt.format(v), va="center", fontsize=8, color=INK_SECONDARY)
+        ax.set_xlabel(label)
+        ax.grid(axis="y", visible=False)
+        ax.set_xlim(0, vals.max() * 1.18)
+    axes[0].set_title(title, loc="left")
+    fig.tight_layout()
+    if name:
+        save_figure(fig, name)
+    return fig
+
+
 def save_figure(fig, name: str, out_dir: Path | str | None = None) -> Path:
     """Save to ``results/figures/<name>.png`` at 300 dpi (print quality for the report)."""
     from src.paths import results_dir

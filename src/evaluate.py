@@ -90,7 +90,9 @@ KEY_PAIRS = [("tisa", "sita"), ("nne", "nane"), ("tatu", "tano"), ("saba", "sita
 
 
 def pair_confusion(y_true, y_pred, label_names: list[str], a: str, b: str) -> float:
-    """Share of clips of word ``a`` or ``b`` that were predicted as the other word of the pair."""
+    """Share of clips of word ``a`` or ``b`` that were predicted as the other word of the pair (NaN if absent)."""
+    if a not in label_names or b not in label_names:
+        return float("nan")
     ia, ib = label_names.index(a), label_names.index(b)
     y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
     in_pair = np.isin(y_true, [ia, ib])
@@ -246,9 +248,12 @@ def plot_learning_curves(history: pd.DataFrame, title: str = "", axes=None):
 
     if axes is None:
         _, axes = plt.subplots(1, 2, figsize=(10, 3.5))
-    axes[0].plot(history["epoch"], history["train_loss"], marker="o", color=SERIES[0], label="train")
-    axes[0].plot(history["epoch"], history["val_loss"], marker="o", color=SERIES[1], label="val")
-    axes[0].set(xlabel="Epoch", ylabel="Cross-entropy loss", title=f"{title} loss".strip())
+    # The training objective includes label smoothing and is computed on augmented clips, so it sits above the
+    # validation log loss by construction; the labels say so, so the curves are not misread as a bug.
+    axes[0].plot(history["epoch"], history["train_loss"], marker="o", color=SERIES[0],
+                 label="train objective (label-smoothed, augmented)")
+    axes[0].plot(history["epoch"], history["val_loss"], marker="o", color=SERIES[1], label="validation log loss")
+    axes[0].set(xlabel="Epoch", ylabel="Cross-entropy", title=f"{title} loss".strip())
     axes[0].legend()
     axes[1].plot(history["epoch"], history["val_macro_f1"], marker="o", color=SERIES[0])
     axes[1].set(xlabel="Epoch", ylabel="Validation macro-F1", title=f"{title} macro-F1".strip())
