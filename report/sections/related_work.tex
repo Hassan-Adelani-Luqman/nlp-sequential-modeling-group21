@@ -34,6 +34,11 @@ audio drove each decision~\cite{deandrade2018neural}.
 Our A3 belongs to this line. It differs in separating the contributions: A3 is recurrent by default, the
 convolutional front-end is tested as an ablation, and A4 is purely convolutional.
 
+Whether recurrence is needed at all is itself an open question. A systematic comparison across sequence-modelling
+benchmarks found that a simple convolutional architecture outperforms canonical recurrent networks such as LSTMs,
+while also showing a longer effective memory~\cite{bai2018empirical}. Our A3--A4 comparison tests whether this
+holds for sequences as short as a single spoken word, with only a few hundred training examples per class.
+
 \subsection{Augmentation for small speech datasets}
 SpecAugment showed that simple transformations applied directly to filter-bank features (time warping, and
 masking blocks of frequency channels and of time steps) are enough to reach state-of-the-art results on large

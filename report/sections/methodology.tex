@@ -2,8 +2,7 @@
 % Methodology (Section 4) - drafted for M2. The evaluation metrics subsection
 % is in evaluation_metrics.tex (M1). Citation keys match report/references.bib.
 % Needs in the preamble: \usepackage{booktabs, amsmath}.
-% TODO markers: [A3] fill from configs/a3_best.yaml once R2 is final;
-%               [A4] M3 and [A5] M4 add their model descriptions.
+% TODO markers: [A5] M4 adds the model description (A3 and A4 are final).
 % ---------------------------------------------------------------------------
 \section{Methodology}
 \label{sec:method}
@@ -77,7 +76,18 @@ and did not change the accuracy (97.0\%). We therefore also report the purely re
 point when comparing recurrence with convolution.
 
 \paragraph{A4: temporal convolutional network (TC-ResNet)}
-[A4: M3 to describe.]
+A4 follows TC-ResNet~\cite{choi2019temporal}. It treats the frequency axis as channels, and slides
+one-dimensional convolutions over time only. A three-wide stem convolution feeds residual blocks. Each block has two
+convolutions of kernel width 9, the first with stride 2, and a projected shortcut when the shape changes. Global
+average pooling over time feeds a linear layer over the 12 words.
+
+Our default is TC-ResNet8 at width 1.5: three blocks with 24--72 channels. It has 146K parameters, and a receptive
+field of 171 frames (1.7~s), which already spans the whole input window. Temporal order therefore reaches A4 only
+through the arrangement of its strided, stacked filters. There is no state carried through time, as there is in A3.
+Because the classifier follows global average pooling, applying it at every time step gives an exact class
+activation map over time, which we use for interpretation. The R2 search (below) kept this architecture, and
+selected MFCC-40 with $\Delta$ and $\Delta\Delta$ (120 channels) from a 2.0~s window, with full augmentation. The
+final model has 150K parameters (\texttt{configs/a4\_best.yaml}), 5.7 times fewer than the final A3.
 
 \paragraph{A5: fine-tuned self-supervised speech transformer}
 [A5: M4 to describe.]
@@ -91,7 +101,7 @@ point when comparing recurrence with convolution.
     \toprule
     ID & Model & Temporal order \\
     \midrule
-    A1 & MFCC statistics + logistic regression & Discarded (bag of frames) \\
+    A1 & MFCC statistics + logistic regression & Discarded (bag of frames); $\Delta$ features keep $\sim$90~ms of local change \\
     A2 & GMM-HMM per word & Left-to-right Markov states \\
     A3 & BiLSTM + attention & Recurrence in both directions \\
     A4 & TC-ResNet & Convolution over time \\
@@ -107,10 +117,13 @@ A3 and A4 share one training loop (\texttt{src/train\_torch.py}):
         with label smoothing 0.1, batch size 64, and at most 40 epochs.
   \item \emph{Early stopping:} training stops when the validation log loss (without label smoothing) has not
         improved for five epochs, and the weights of the best epoch are restored.
-  \item \emph{Augmentation:} applied on the fly to training clips in the log-mel domain, using SpecAugment time and
-        frequency masking~\cite{park2019specaugment}, time shifts of up to 100~ms, tempo perturbation (0.9--1.1$\times$)
-        and noise injection at 10--30~dB SNR. All of it is synthetic, because the competition allows no external
-        data.
+  \item \emph{Augmentation:} applied on the fly to the feature frames of training clips, using SpecAugment time and
+        frequency masking~\cite{park2019specaugment}, time shifts of up to 100~ms and tempo perturbation
+        (0.9--1.1$\times$). Noise injection at 10--30~dB SNR assumes a dB power scale, so it is used for log-mel
+        inputs only. Padding and masks take the clip's minimum and mean value. For log-mel, whose bands share one
+        dB scale, that is one value per clip. A4's MFCC inputs use one value per channel, because their channels
+        differ in scale by orders of magnitude. With a single value, the first MFCC run of A4 collapsed to chance.
+        All augmentation is synthetic, because the competition allows no external data.
   \item \emph{Reproducibility:} every generator is seeded before the weights are initialised, so a configuration
         reproduces exactly.
 \end{itemize}
@@ -123,9 +136,12 @@ split for the HMM topology and preprocessing of A2. For A3 we ran a greedy, one-
 Starting from the default configuration, each run changes a single factor relative to the current best
 configuration, and keeps the change only if the validation log loss improves. The factors were augmentation,
 pooling (attention, last state, mean), recurrent direction, input features (log-mel or MFCC), window length
-(1.0/1.5/2.0~s), the way the word is located, the learning rate, and a convolutional front-end. This makes every
-decision traceable to a logged comparison. The cost is that interactions between factors are only explored along
-the chosen path.
+(1.0/1.5/2.0~s), the way the word is located, the learning rate, and a convolutional front-end. A4 followed the
+same protocol over the factors that apply to it: augmentation, input features, window length, the way the word is
+located, depth, kernel width, network width and the learning rate. This makes every decision traceable to a logged
+comparison. The cost is that interactions between factors are only explored along the chosen path. Runs that
+failed, or that a later fix made stale, are kept outside the results table (\texttt{results/failed\_runs/} and
+\texttt{results/superseded\_runs/}).
 
 Single-seed comparisons are noisy, so we measured the noise. Retraining the final A3 configuration with three seeds
 (42, 13, 7) gave a validation log loss of $0.137\pm0.004$ (mean $\pm$ SD) and an accuracy of $96.9\pm0.2\%$.
@@ -133,5 +149,10 @@ Training is deterministic: the seed-42 run reproduced the R2 result exactly. Sea
 by about one SD are therefore within seed noise. These include the window length (1.0 versus 1.5~s), the learning
 rate and the rejection of the 2.0~s window. We report them, but draw no conclusions from them. Only the larger
 effects, such as augmentation, pooling, direction and the way the word is located, are interpreted.
+
+A4 is much less stable across seeds: $0.135\pm0.023$ log loss and $96.8\pm0.3\%$ accuracy. One seed stopped
+early, at epoch 16 of 40, while the learning rate was still high. For A4, therefore, only the effect of the way the
+word is located (silence trim: $+0.157$ log loss) is clearly larger than seed noise. The other R2 differences
+(0.02--0.04) are read as directions, not established effects.
 
 % TODO: add software references (PyTorch, scikit-learn, librosa, hmmlearn) after verifying them like the others.

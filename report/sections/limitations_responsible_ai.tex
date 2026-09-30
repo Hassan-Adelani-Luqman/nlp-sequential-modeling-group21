@@ -1,0 +1,66 @@
+% ---------------------------------------------------------------------------
+% Limitations and Responsible AI (part of Section 6) - drafted for M3.
+% The error-analysis subsection (Phase 8) is added after the Phase 7 test run.
+% Citation keys match report/references.bib.
+% ---------------------------------------------------------------------------
+\subsection{Limitations}
+\label{sec:limitations}
+\begin{enumerate}
+  \item \emph{Unknown speakers.} The dataset gives no speaker identities, so the frozen split cannot be
+        speaker-disjoint. The same person may appear in both training and test clips, and every score may overstate
+        performance on new speakers. Keyword-spotting benchmarks usually avoid this by keeping each speaker in one
+        partition~\cite{warden2018speech}.
+  \item \emph{A closed vocabulary.} Every clip is forced into one of 12 words, and there is no ``unknown word'' or
+        ``silence'' class. A deployed system would confidently mislabel anything outside the vocabulary.
+  \item \emph{One region, one collection.} All recordings come from crowd-workers in Kenya, collected once. The
+        results may not transfer to other varieties of Swahili (for example in Tanzania or the DRC), to other
+        recording devices, or to conversational speech.
+  \item \emph{Augmentation constrained by the rules.} External data such as noise corpora is not allowed. Our
+        synthetic noise (10--30~dB SNR) was harsher than most real clips (median SNR 42~dB), so the augmentation
+        study is only a partial test.
+  \item \emph{Selection on one validation split.} Configurations were chosen from many validation runs, so
+        validation scores are optimistic~\cite{cawley2010overfitting}. Differences of about one seed standard
+        deviation (0.004 log loss for A3, 0.023 for A4) are indistinguishable from noise. The test split, scored
+        once, gives the unbiased estimate.
+  \item \emph{Early stopping tuned for one model.} A patience of five epochs suited A3, but cut one A4 seed off at
+        epoch 16 of 40, while the learning rate was still high. That run explains most of A4's larger seed spread.
+        We did not retune the patience after seeing the seed runs, to avoid selecting on validation once more.
+  \item \emph{Possible label noise.} Some validation clips are misclassified by A2, A3 and A4 alike, often with
+        high confidence and with the same wrong word. These may be mislabelled or unusual recordings. We did not
+        relabel anything, so such clips count as errors for every model.
+  \item \emph{A small test set.} With 630 test clips, accuracy is known to within about $\pm$1--3 points, and
+        each sound-alike pair has only about 105 clips.
+\end{enumerate}
+
+\subsection{Responsible AI}
+\paragraph{Consent and data protection}
+Voice recordings are biometric data. The clips were crowdsourced by the challenge organiser under its own terms,
+and we honoured its rules: the audio and derived features were never published, were shared only through private
+datasets among the group, and are excluded from the public repository.
+
+\paragraph{Fairness we could not measure}
+The data carries no speaker metadata (gender, age, dialect or region), so we could not test whether error rates
+differ between groups. The wide pitch range suggests a mix of voices, but that is no substitute for a fairness
+audit. Speakers of other Swahili varieties, children and older adults may be served worse by any model trained
+only on these recordings.
+
+\paragraph{Consequences of errors}
+The intended applications, such as spoken digits for mobile money, helplines or menu navigation for users with
+limited literacy~\cite{doumbouya2021using}, turn a misrecognised digit into a wrong transaction or a wrong service.
+Calibration therefore matters as much as accuracy. A deployed system should confirm uncertain inputs, which is why
+we report log loss and calibration error, and why we apply temperature scaling. Because the vocabulary is closed,
+it also needs a way to reject speech outside the vocabulary.
+
+\paragraph{Dual use}
+Keyword spotting in under-resourced African languages has humanitarian uses, such as monitoring radio for relief
+programmes~\cite{menon2018fast}. The same technology could also be used for surveillance of speech. The models
+here recognise only 12 isolated words, which limits that risk.
+
+\paragraph{Environmental cost}
+The neural models were trained on one Kaggle Tesla~T4; one A4 rerun and the classical baselines ran on a laptop
+CPU. A full tuning round for A3 (13 runs) took about 10 minutes of GPU time. All of A4's runs, including the failed
+and superseded ones, took under 30 minutes. The compute and energy cost of the study is small.
+
+\paragraph{Use of AI assistance}
+AI tools assisted with code, analysis and drafting. Every contribution is disclosed, with how it was verified, in
+the AI-use statement and the project log (\texttt{report/ai\_use\_log.md}).
