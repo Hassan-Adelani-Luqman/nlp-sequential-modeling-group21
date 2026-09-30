@@ -1,0 +1,59 @@
+% ---------------------------------------------------------------------------
+% Related Work (Section 2) - drafted for M2 (keyword spotting, recurrence,
+% attention, augmentation). M4 adds the self-supervised speech models and
+% African/low-resource speech subsection. Citation keys match report/references.bib.
+% ---------------------------------------------------------------------------
+\section{Related Work}
+\label{sec:related}
+
+\subsection{From HMMs to neural keyword spotting}
+Recognising a word from a small vocabulary is one of the oldest speech tasks. Classic systems pair a compact
+spectral representation, the mel-frequency cepstrum, which outperformed other parametric representations for
+word recognition~\cite{davis1980comparison}, with one hidden Markov model per word, trained by Baum--Welch
+re-estimation and decoded by maximum likelihood~\cite{rabiner1989tutorial}. Our A1 and A2 baselines follow this
+tradition. A1 keeps only order-free statistics of the cepstral frames, and A2 is the per-word left-to-right HMM.
+
+The task became a standard benchmark with the Speech Commands dataset, which also proposed a reproducible way to
+report keyword-spotting accuracy~\cite{warden2018speech}. Convolutional networks then replaced HMM and DNN
+pipelines for small-footprint keyword spotting. Under fixed budgets on multiplications and parameters, they
+reduced the false-reject rate by 27--44\% relative to a DNN~\cite{sainath2015convolutional}. Temporal
+convolutions over the frames, arranged in a compact residual network (TC-ResNet), made keyword spotting fast
+enough for real-time use on phones (a reported 385$\times$ speed-up) while surpassing the accuracy of the previous
+state of the art on Speech Commands~\cite{choi2019temporal}. This is the design behind our A4.
+
+\subsection{Recurrence and attention}
+Recurrent networks model a sequence by carrying a hidden state from frame to frame. Long short-term memory (LSTM)
+units keep the error signal constant through gated memory cells, and can learn dependencies across more than
+1{,}000 time steps~\cite{hochreiter1997long}. Stacked, bidirectional LSTMs brought this to acoustic modelling,
+reaching a 17.7\% phoneme error rate on TIMIT~\cite{graves2013speech}. Attention replaces a single summary
+vector with a learned, soft search over positions~\cite{bahdanau2015neural}. For speech commands, de Andrade et
+al.\ combined convolution, recurrence and attention in one model, reaching 94.1\% and 94.5\% accuracy on Speech
+Commands V1 and V2 with only 202K parameters. They also used the attention weights to show which parts of the
+audio drove each decision~\cite{deandrade2018neural}.
+
+Our A3 belongs to this line. It differs in separating the contributions: A3 is recurrent by default, the
+convolutional front-end is tested as an ablation, and A4 is purely convolutional.
+
+\subsection{Augmentation for small speech datasets}
+SpecAugment showed that simple transformations applied directly to filter-bank features (time warping, and
+masking blocks of frequency channels and of time steps) are enough to reach state-of-the-art results on large
+speech-recognition benchmarks~\cite{park2019specaugment}. Our setting is the opposite extreme: about 245 training
+clips per word, and competition rules that forbid external data such as noise corpora. Synthetic, feature-level
+augmentation is therefore the only augmentation available to us, and its value is tested directly in round R2.
+
+\subsection{Self-supervised speech models and African languages}
+[M4: wav2vec~2.0 / XLS-R / MMS pretraining and fine-tuning; Common Voice; keyword spotting and speech technology
+for African and other low-resource languages; the gap this study addresses.]
+
+\subsection{How the literature shaped our study}
+Three lessons from this work shaped the design:
+\begin{enumerate}
+  \item Keyword spotting has been solved with very different ways of modelling time: order-free features,
+        Markov states, convolution, recurrence and self-attention. We therefore compare one representative of
+        each on the same data, split and metrics, rather than tuning a single family.
+  \item Attention-based recognisers can show where in the audio they look~\cite{deandrade2018neural}. We use this
+        to test our central hypothesis directly: words whose sounds differ mainly in order (\textit{tisa} and
+        \textit{sita}) should separate order-aware from order-free models.
+  \item Augmentation such as SpecAugment is most useful when data is scarce~\cite{park2019specaugment}. With 245
+        clips per word, we treat it as a first-class experimental factor rather than a fixed default.
+\end{enumerate}

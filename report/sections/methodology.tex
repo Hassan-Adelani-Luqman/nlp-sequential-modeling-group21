@@ -127,4 +127,11 @@ pooling (attention, last state, mean), recurrent direction, input features (log-
 decision traceable to a logged comparison. The cost is that interactions between factors are only explored along
 the chosen path.
 
+Single-seed comparisons are noisy, so we measured the noise. Retraining the final A3 configuration with three seeds
+(42, 13, 7) gave a validation log loss of $0.137\pm0.004$ (mean $\pm$ SD) and an accuracy of $96.9\pm0.2\%$.
+Training is deterministic: the seed-42 run reproduced the R2 result exactly. Search steps that changed the log loss
+by about one SD are therefore within seed noise. These include the window length (1.0 versus 1.5~s), the learning
+rate and the rejection of the 2.0~s window. We report them, but draw no conclusions from them. Only the larger
+effects, such as augmentation, pooling, direction and the way the word is located, are interpreted.
+
 % TODO: add software references (PyTorch, scikit-learn, librosa, hmmlearn) after verifying them like the others.
