@@ -33,7 +33,9 @@ The full project plan is in [Plan.md](Plan.md).
 - [x] A3 rounds R1 + R2 ([notebooks/03_bilstm.ipynb](notebooks/03_bilstm.ipynb), 13 logged runs on a Kaggle T4)
   - Conv1d + BiLSTM + attention on MFCC-40: **97.0%** val accuracy, log loss 0.134
   - 0% *tisa/sita*, *nne/nane* and *tatu/tano* confusion
-- [x] Report drafts: [evaluation metrics](report/sections/evaluation_metrics.tex) (M1), [methodology](report/sections/methodology.tex) (M2), [literature notes](report/lit_notes.md) (M1, M2), [verified bibliography](report/references.bib)
+  - Seed check (3 seeds): val log loss 0.137 ± 0.004, accuracy 96.9% ± 0.2; checkpoints saved for the Phase 7 test run
+  - Interpretability: attention concentrates on the word (median 100% of the weight); a streaming, forward-only A3 reaches 80% accuracy 500 ms into the word
+- [x] Report drafts: [evaluation metrics](report/sections/evaluation_metrics.tex) (M1), [methodology](report/sections/methodology.tex) (M2), [related work](report/sections/related_work.tex) (M2), [literature notes](report/lit_notes.md) (M1, M2), [verified bibliography](report/references.bib)
 - [ ] Phases 3, 5–8: EDA, neural models, tuning, final evaluation, error analysis
 - [ ] Report, demo video, contribution tracker (links added on submission)
 
