@@ -47,8 +47,14 @@ class ExperimentRunner:
         pred_file, metrics_file, history_file = self._paths(exp_id)
         record = load_run(exp_id, self.seed)
         if record and pred_file.exists() and metrics_file.exists() and not self.rerun:
+            stored = json.loads(metrics_file.read_text(encoding="utf-8"))
+            # A logged run is only reused for the configuration it was trained with. Otherwise a changed
+            # upstream decision could silently hand back stale results under the same exp_id.
+            if json.loads(json.dumps(params, default=str)) != stored["params"]:
+                raise ValueError(f"{exp_id} (seed {self.seed}) is logged with different parameters than requested; "
+                                 "delete its results files or use a new exp_id (or rerun=True to overwrite).")
             _, probs = load_predictions(pred_file)
-            extra = json.loads(metrics_file.read_text(encoding="utf-8"))["extra"]
+            extra = stored["extra"]
             if history_file.exists():
                 extra["history"] = pd.read_csv(history_file)
             minutes, status = float(record["train_time_min"]), "reused"

@@ -25,25 +25,44 @@ TOP_DB = 80.0  # dynamic range used when the log-mel features were computed (src
 
 
 class LogMelAugment:
+    """``fill`` sets what padding and masks are filled with.
+
+    * ``"global"`` (default): the clip's overall minimum (padding) and mean (masks). Correct for log-mel,
+      where every band shares one dB scale. Kept as the default so logged runs (e.g. A3) reproduce exactly.
+    * ``"channel"``: each channel's own minimum and mean. **Required for MFCC-type inputs.** Their channels
+      have very different scales (c0 is often near -600, while the deltas sit near 0), so a global value
+      written into every channel creates huge outliers. In A4 this collapsed training to chance (run A4-R2-03).
+    """
+
     def __init__(self, time_masks: int = 2, time_width: int = 20, freq_masks: int = 2, freq_width: int = 8,
                  shift_frames: int = 10, stretch: tuple[float, float] | None = (0.9, 1.1), p_stretch: float = 0.5,
-                 noise_snr_db: tuple[float, float] | None = (10.0, 30.0), p_noise: float = 0.5, seed: int | None = None):
+                 noise_snr_db: tuple[float, float] | None = (10.0, 30.0), p_noise: float = 0.5,
+                 fill: str = "global", seed: int | None = None):
+        if fill not in ("global", "channel"):
+            raise ValueError("fill must be 'global' or 'channel'")
         self.time_masks, self.time_width = time_masks, time_width
         self.freq_masks, self.freq_width = freq_masks, freq_width
         self.shift_frames = shift_frames
         self.stretch, self.p_stretch = stretch, p_stretch
         self.noise_snr_db, self.p_noise = noise_snr_db, p_noise
+        self.fill = fill
         self.rng = np.random.default_rng(seed)
 
     @classmethod
-    def specaugment_only(cls, seed: int | None = None) -> "LogMelAugment":
-        return cls(shift_frames=0, stretch=None, noise_snr_db=None, seed=seed)
+    def specaugment_only(cls, seed: int | None = None, fill: str = "global") -> "LogMelAugment":
+        return cls(shift_frames=0, stretch=None, noise_snr_db=None, fill=fill, seed=seed)
 
     def describe(self) -> dict:
         """Settings, for the experiment log."""
         return {"time_masks": self.time_masks, "time_width": self.time_width, "freq_masks": self.freq_masks,
                 "freq_width": self.freq_width, "shift_frames": self.shift_frames, "stretch": self.stretch,
-                "noise_snr_db": self.noise_snr_db}
+                "noise_snr_db": self.noise_snr_db, "fill": self.fill}
+
+    def _floor(self, x: np.ndarray):
+        return x.min(axis=0) if self.fill == "channel" else x.min()
+
+    def _centre(self, x: np.ndarray):
+        return x.mean(axis=0) if self.fill == "channel" else x.mean()
 
     # ------------------------------------------------------------------ transforms
     def _stretch(self, x: np.ndarray) -> np.ndarray:
@@ -57,14 +76,17 @@ class LogMelAugment:
             start = (new_n - n) // 2
             return stretched[start: start + n]
         pad = n - new_n
-        floor = x.min()
-        return np.pad(stretched, ((pad // 2, pad - pad // 2), (0, 0)), constant_values=floor)
+        out = np.empty_like(x)
+        out[:] = self._floor(x)                          # silence-like padding (per channel if fill="channel")
+        out[pad // 2: pad // 2 + new_n] = stretched
+        return out
 
     def _shift(self, x: np.ndarray) -> np.ndarray:
         k = int(self.rng.integers(-self.shift_frames, self.shift_frames + 1))
         if k == 0:
             return x
-        out = np.full_like(x, x.min())  # silence, not wrap-around
+        out = np.empty_like(x)
+        out[:] = self._floor(x)                          # silence, not wrap-around
         if k > 0:
             out[k:] = x[:-k]
         else:
@@ -84,7 +106,7 @@ class LogMelAugment:
 
     def _mask(self, x: np.ndarray) -> np.ndarray:
         x = x.copy()
-        fill = x.mean()
+        fill = self._centre(x)                           # scalar, or one value per channel
         n_frames, n_mels = x.shape
         for _ in range(self.time_masks):
             w = int(self.rng.integers(0, self.time_width + 1))
@@ -95,7 +117,7 @@ class LogMelAugment:
             w = int(self.rng.integers(0, self.freq_width + 1))
             if w:
                 f0 = int(self.rng.integers(0, max(1, n_mels - w)))
-                x[:, f0: f0 + w] = fill
+                x[:, f0: f0 + w] = fill if np.ndim(fill) == 0 else fill[f0: f0 + w]
         return x
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
