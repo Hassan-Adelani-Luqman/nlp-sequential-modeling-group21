@@ -100,6 +100,12 @@ def test_training_learns_temporal_order_and_is_reproducible(tmp_path):
     assert (tmp_path / "m.pt").exists()
     np.testing.assert_allclose(predict_logits(r1.model, X_va, r1.scaler), r1.val_logits, atol=1e-5)
 
+    from src.train_torch import load_checkpoint  # a reloaded checkpoint reproduces the trained model exactly
+
+    model, scaler, ckpt = load_checkpoint(tmp_path / "m.pt", make)
+    np.testing.assert_allclose(predict_logits(model, X_va, scaler), r1.val_logits, atol=1e-5)
+    assert ckpt["best_epoch"] == r1.best_epoch
+
 
 # ------------------------------------------------------------------ experiment runner
 def test_runner_logs_then_reuses(tmp_path, monkeypatch):

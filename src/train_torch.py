@@ -90,6 +90,22 @@ def predict_logits(model: nn.Module, X: np.ndarray, scaler: Standardizer, batch_
     return torch.cat(out).numpy()
 
 
+def load_checkpoint(path: Path | str, model_fn: Callable[[], nn.Module],
+                    device: torch.device | str = "cpu") -> tuple[nn.Module, Standardizer, dict]:
+    """Rebuild a trained model and its training-split scaler from a checkpoint written by ``train_model``.
+
+    Returns ``(model in eval mode, scaler, raw checkpoint dict)``. ``weights_only=False`` is needed
+    because our checkpoints also store the scaler's numpy arrays; only load checkpoints you created.
+    """
+    ckpt = torch.load(path, map_location=device, weights_only=False)
+    model = model_fn()
+    model.load_state_dict(ckpt["state_dict"])
+    model.to(device).eval()
+    scaler = Standardizer()
+    scaler.mean_, scaler.std_ = ckpt["scaler_mean"], ckpt["scaler_std"]
+    return model, scaler, ckpt
+
+
 def _make_scheduler(optimizer, cfg: TrainConfig, total_steps: int):
     if cfg.scheduler == "onecycle":
         return torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=cfg.lr, total_steps=total_steps, pct_start=0.1)
