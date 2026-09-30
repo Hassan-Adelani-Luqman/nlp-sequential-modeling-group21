@@ -93,6 +93,9 @@ def checkpoints_dir() -> Path:
 
 
 def cache_dir() -> Path:
+    """Feature cache. Override with ``SWN_CACHE_DIR``, e.g. ``/tmp`` on Kaggle so caches are not saved as outputs."""
+    if os.environ.get("SWN_CACHE_DIR"):
+        return Path(os.environ["SWN_CACHE_DIR"])
     return results_dir() / "cache"
 
 
