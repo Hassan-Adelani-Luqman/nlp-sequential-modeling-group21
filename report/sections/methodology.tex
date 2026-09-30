@@ -1,0 +1,130 @@
+% ---------------------------------------------------------------------------
+% Methodology (Section 4) - drafted for M2. The evaluation metrics subsection
+% is in evaluation_metrics.tex (M1). Citation keys match report/references.bib.
+% Needs in the preamble: \usepackage{booktabs, amsmath}.
+% TODO markers: [A3] fill from configs/a3_best.yaml once R2 is final;
+%               [A4] M3 and [A5] M4 add their model descriptions.
+% ---------------------------------------------------------------------------
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Data and experimental protocol}
+The challenge training set contains 4{,}200 labelled clips (350 per word), all 16~kHz mono 16-bit
+PCM~\cite{zindi2021swahili}. The test labels are hidden, so we froze one stratified 70/15/15 split of the training
+set (seed 42) into 2{,}940 training, 630 validation and 630 test clips (52--53 per word in validation and test). A
+hash of the split is checked by every notebook. No byte-identical duplicate recordings were found.
+Model selection uses the validation split only. The test split is scored once, after every configuration is frozen.
+Experiments proceed in rounds: R0 establishes each approach, R1 trains default neural configurations, R2 tunes, R3
+trains the final configurations with three seeds and evaluates them on the test split, and R4 varies the amount of
+training data. Every run is logged with the change it makes and the reason for it (\texttt{results/experiments.csv}).
+
+\subsection{Preprocessing}
+Clips last 2.2--62~s (median 4.3~s), but a spoken digit lasts under a second, so most of each clip is silence or
+background noise. A single silence-trimming threshold was unreliable: at 30~dB, 10\% of trimmed clips in a
+600-clip sample still exceeded 4.5~s. We therefore keep the 1.5~s window with the highest signal energy. When the whole word fits, many
+window positions hold almost the same energy, so we take the middle of that plateau. This centres the word: the
+energy centroid lies within $\pm0.2$~s of the window centre for 90\% of clips. The window retains a median of
+99.8\% of each clip's above-noise energy, and less than 70\% in only 2.7\% of clips, which are mostly long
+recordings containing several utterances. Each window is peak-normalised.
+
+\subsection{Acoustic features}
+Frames use a 25~ms window and a 10~ms hop, giving 151 frames per window. We compute a 64-band log-mel spectrogram
+(dB, 80~dB dynamic range) and mel-frequency cepstral coefficients (MFCCs)~\cite{davis1980comparison} with delta and
+delta-delta coefficients (a 9-frame window). Features are computed once, cached, and shared by all members, so every
+approach sees identical inputs. Normalisation statistics are always fitted on the training split only.
+
+\subsection{Approaches}
+Table~\ref{tab:approaches} summarises the five approaches. They were chosen to vary \emph{how} temporal order is
+modelled: not at all (A1), by a generative Markov chain (A2), by recurrence (A3), by convolution over time (A4) and
+by self-attention with self-supervised pretraining (A5).
+
+\paragraph{A1: MFCC statistics with a linear classifier}
+Each clip becomes one 156-dimensional vector: the mean, standard deviation, minimum and maximum over time of 13
+MFCCs with their deltas. This discards temporal order entirely. After standardisation, a multinomial logistic
+regression ($C=0.1$, chosen by 5-fold cross-validation on the training split) outperformed an RBF-kernel SVM with
+Platt-scaled probabilities~\cite{platt1999probabilistic,wu2004probability}.
+
+\paragraph{A2: GMM-HMM per word}
+Following the classic isolated-word recogniser~\cite{rabiner1989tutorial}, each word has its own left-to-right HMM:
+each state either repeats or moves to the next. Each state emits diagonal-covariance Gaussian mixtures over
+39-dimensional frames (13 MFCCs with deltas). The frames are normalised per utterance (cepstral mean and variance
+normalisation, CMVN) to remove the channel differences of about 300 speakers recording on different phones. States
+are initialised by a flat start: every training sequence is split uniformly into segments, and state $i$ is
+initialised from the $i$-th segments. Training uses Baum--Welch, with small MAP priors on the mixture weights,
+variances and allowed transitions. These priors prevent components starved of frames from producing degenerate
+(NaN) parameters. A clip is assigned to the word whose model gives the highest per-frame log-likelihood. The final
+model has 12 states and 8 Gaussians per state.
+
+\paragraph{A3: bidirectional LSTM with attention}
+The log-mel frames ($151\times64$) feed two stacked bidirectional LSTM layers~\cite{hochreiter1997long,graves2013speech}
+with 128 units per direction. The outputs are pooled over time with additive attention~\cite{bahdanau2015neural},
+followed by dropout and a linear layer over the 12 words. Recurrence carries information across the whole word, and
+attention learns which frames matter. It also exposes, for the error analysis, which frames each decision relied on.
+The design follows the attention-based recogniser of de Andrade et al.~\cite{deandrade2018neural} with one
+deliberate difference. We omit their convolutional layers by default, so that A3 is purely recurrent and contrasts
+cleanly with the convolutional A4. Adding them back is one of the R2 ablations.
+
+The R2 search selected:
+\begin{itemize}
+  \item 40 MFCCs with deltas instead of the log-mel input;
+  \item a 1.0~s window;
+  \item SpecAugment;
+  \item a peak learning rate of $2\times10^{-3}$;
+  \item de Andrade et al.'s convolutional front-end (two 1-D convolutions, kernel 5, 128 channels).
+\end{itemize}
+The final model has 855K parameters. The front-end lowered the validation log loss only marginally ($0.142\to0.134$)
+and did not change the accuracy (97.0\%). We therefore also report the purely recurrent variant as the reference
+point when comparing recurrence with convolution.
+
+\paragraph{A4: temporal convolutional network (TC-ResNet)}
+[A4: M3 to describe.]
+
+\paragraph{A5: fine-tuned self-supervised speech transformer}
+[A5: M4 to describe.]
+
+\begin{table}[t]
+  \centering
+  \caption{The five approaches and how each treats temporal order.}
+  \label{tab:approaches}
+  \small
+  \begin{tabular}{@{}llp{0.42\linewidth}@{}}
+    \toprule
+    ID & Model & Temporal order \\
+    \midrule
+    A1 & MFCC statistics + logistic regression & Discarded (bag of frames) \\
+    A2 & GMM-HMM per word & Left-to-right Markov states \\
+    A3 & BiLSTM + attention & Recurrence in both directions \\
+    A4 & TC-ResNet & Convolution over time \\
+    A5 & XLS-R (fine-tuned) & Self-attention; multilingual self-supervised pretraining \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Training the neural models}
+A3 and A4 share one training loop (\texttt{src/train\_torch.py}):
+\begin{itemize}
+  \item \emph{Optimisation:} AdamW with a one-cycle learning-rate schedule, gradient clipping at 1.0, cross-entropy
+        with label smoothing 0.1, batch size 64, and at most 40 epochs.
+  \item \emph{Early stopping:} training stops when the validation log loss (without label smoothing) has not
+        improved for five epochs, and the weights of the best epoch are restored.
+  \item \emph{Augmentation:} applied on the fly to training clips in the log-mel domain, using SpecAugment time and
+        frequency masking~\cite{park2019specaugment}, time shifts of up to 100~ms, tempo perturbation (0.9--1.1$\times$)
+        and noise injection at 10--30~dB SNR. All of it is synthetic, because the competition allows no external
+        data.
+  \item \emph{Reproducibility:} every generator is seeded before the weights are initialised, so a configuration
+        reproduces exactly.
+\end{itemize}
+Every model's probabilities are then temperature-scaled~\cite{guo2017calibration}, as described in
+Section~\ref{sec:metrics}.
+
+\subsection{Hyperparameter search}
+Classical models were tuned by grid search: cross-validated on the training split for A1, and on the validation
+split for the HMM topology and preprocessing of A2. For A3 we ran a greedy, one-factor-at-a-time search in round R2.
+Starting from the default configuration, each run changes a single factor relative to the current best
+configuration, and keeps the change only if the validation log loss improves. The factors were augmentation,
+pooling (attention, last state, mean), recurrent direction, input features (log-mel or MFCC), window length
+(1.0/1.5/2.0~s), the way the word is located, the learning rate, and a convolutional front-end. This makes every
+decision traceable to a logged comparison. The cost is that interactions between factors are only explored along
+the chosen path.
+
+% TODO: add software references (PyTorch, scikit-learn, librosa, hmmlearn) after verifying them like the others.

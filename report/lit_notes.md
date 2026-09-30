@@ -93,7 +93,48 @@ These were checked against their abstracts. Each gets one line, with the key in 
 ---
 
 ## M2: recurrent models, attention, augmentation
-*To be written by M2.*
+
+### hochreiter1997long: Long short-term memory (Hochreiter, 1997)
+- **Task / data:** learning long-range dependencies in sequences with recurrent networks.
+- **Method:** LSTM units, which keep error flow constant through gated "constant error carousels", so gradients neither vanish nor explode over long time lags.
+- **Key result:** LSTM can learn to bridge time lags of more than 1000 discrete time steps, where earlier recurrent methods failed.
+- **How it informs our project:**
+  - A3 uses LSTM cells because a word spans about 151 frames (1.5 s at 100 frames/s), and the evidence that separates *tisa* from *sita*, or *tano* from *tatu*, is spread across the word.
+  - A plain recurrent network would struggle to carry information across that span. EDA 8 showed that the second syllable matters.
+
+### graves2013speech: Deep recurrent networks for speech recognition (Graves, 2013)
+- **Task / data:** phoneme recognition on TIMIT.
+- **Method:** *deep* (stacked) and *bidirectional* LSTM networks, combining several levels of representation with long-range context in both directions.
+- **Key result:** deep LSTM networks reached a 17.7% test error on the TIMIT phoneme benchmark.
+- **How it informs our project:**
+  - This is the precedent for A3's two stacked bidirectional LSTM layers on acoustic frames.
+  - The bidirectional choice is tested directly in R2 (A3-R2-05, forward-only). That also asks whether a streaming-capable model would lose accuracy.
+
+### bahdanau2015neural: Attention for sequence models (Bahdanau, 2015)
+- **Task / data:** English–French neural machine translation.
+- **Method:** replaces the fixed-length encoding of the sequence with a learned soft search: an additive (tanh) score for each position, and a weighted sum over positions.
+- **Key result:** performance comparable to the state-of-the-art phrase-based system, by removing the fixed-length bottleneck.
+- **How it informs our project:**
+  - A3 pools the LSTM outputs over time with this additive attention, instead of using only the final hidden state. R2 compares attention with last-state (A3-R2-03) and mean (A3-R2-04) pooling.
+  - The attention weights also let the error analysis show which frames each decision relied on.
+
+### deandrade2018neural: Attention model for speech commands (de Andrade, 2018)
+- **Task / data:** keyword recognition on Google Speech Commands (V1 and V2), the closest benchmark to our task.
+- **Method:** a convolutional recurrent network with attention. The attention weights show which parts of the audio the network used.
+- **Key result:** "94.1% on Google Speech Commands dataset V1 and 94.5% on V2 (for the 20-commands recognition task)", with only 202K trainable parameters.
+- **How it informs our project:**
+  - This is the direct precedent for A3: recurrence plus attention on spectrogram features for spoken-word classification.
+  - We deliberately leave out its convolutional layers by default, so that A3 is a purely recurrent model and contrasts cleanly with the convolutional A4. A3-R2-12 adds them back to test that choice.
+  - Their ~94% on a far larger dataset is a useful reference for what is achievable. We have only 245 training clips per word.
+
+### park2019specaugment: SpecAugment (Park, 2019)
+- **Task / data:** end-to-end speech recognition (LibriSpeech 960 h, Switchboard 300 h).
+- **Method:** augmentation applied directly to filter-bank features: time warping, masking blocks of frequency channels, and masking blocks of time steps.
+- **Key result:** state-of-the-art results on both tasks, e.g. "6.8% WER on test-other without the use of a language model" on LibriSpeech, against 7.5% for the previous best hybrid system.
+- **How it informs our project:**
+  - With only 245 clips per word, A3 is at risk of over-fitting. A3-R2-01 adds SpecAugment's time and frequency masking.
+  - A3-R2-02 extends it with synthetic time shift, tempo change and noise. Only synthetic transforms are allowed, because the competition bans external data.
+  - We use a global tempo change rather than SpecAugment's time warping, and apply masking in the log-mel domain as the paper does.
 
 ## M3: convolutional keyword spotting, African-language speech
 *To be written by M3.*
