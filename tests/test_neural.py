@@ -61,6 +61,19 @@ def test_noise_raises_the_silence_floor():
     assert abs(out[60:90].mean() - x[60:90].mean()) < 2  # the word itself barely changes
 
 
+def test_global_fill_reproduces_logged_behaviour_and_channel_fill_respects_scales():
+    """The default must not change (logged runs depend on it); fill='channel' must keep MFCC channels in range."""
+    rng = np.random.default_rng(0)
+    mfcc_like = np.hstack([rng.normal(-600, 20, (151, 1)), rng.normal(0, 1, (151, 119))]).astype(np.float32)
+    kw = dict(time_masks=2, freq_masks=2, shift_frames=10, stretch=(0.9, 1.1), p_stretch=1.0, noise_snr_db=None)
+    legacy = LogMelAugment(seed=4, **kw)(mfcc_like)
+    assert legacy[:, 1:].min() < -100   # global fill writes c0's scale into the delta channels (the bug)
+    fixed = LogMelAugment(fill="channel", seed=4, **kw)(mfcc_like)
+    assert fixed[:, 1:].min() > mfcc_like[:, 1:].min() - 1e-3   # every channel stays within its own range
+    assert fixed[:, 0].min() >= mfcc_like[:, 0].min() - 1e-3
+    np.testing.assert_array_equal(legacy, LogMelAugment(seed=4, **kw)(mfcc_like))   # default is unchanged and seeded
+
+
 def test_specaugment_masks_something():
     x = fake_logmel()
     aug = LogMelAugment(time_masks=2, time_width=20, freq_masks=2, freq_width=8, shift_frames=0, stretch=None,
@@ -83,6 +96,30 @@ def test_bilstm_shapes(bidirectional, pooling):
 
 def test_conv_frontend_variant():
     assert BiLSTMAttention(n_features=64, conv_frontend=True)(torch.randn(2, 151, 64)).shape == (2, 12)
+
+
+@pytest.mark.parametrize("blocks", [3, 6])
+def test_tcresnet_shapes_cam_and_receptive_field(blocks):
+    from src.models.tcresnet import TCResNet
+
+    model = TCResNet(n_features=64, blocks=blocks).eval()
+    x = torch.randn(2, 151, 64)
+    logits, cam = model(x, return_cam=True)
+    assert logits.shape == (2, 12) and cam.shape[:2] == (2, 12)
+    assert torch.allclose(cam.mean(-1), logits, atol=1e-5)  # CAM averaged over time recovers the logits exactly
+    assert model.receptive_field_frames() > 100             # context spans most of a 1-1.5 s window
+    assert 20_000 < count_parameters(model) < 1_000_000
+
+
+def test_tcresnet_learns_temporal_order():
+    """Mirror-image sequences: a temporal convolution with enough context must separate them."""
+    from src.models.tcresnet import TCResNet
+
+    X, y = mirror_task(n_frames=40)
+    cfg = TrainConfig(epochs=20, batch_size=16, lr=5e-3, patience=20, seed=0)
+    r = train_model(lambda: TCResNet(n_features=4, n_classes=2, width=1.0, dropout=0.0), X[:60], y[:60], X[60:], y[60:],
+                    cfg, verbose=False)
+    assert (r.val_logits.argmax(1) == y[60:]).mean() >= 0.95
 
 
 # ------------------------------------------------------------------ training loop
@@ -129,3 +166,5 @@ def test_runner_logs_then_reuses(tmp_path, monkeypatch):
     assert list(second["extra"]["history"].columns) == ["epoch", "val_loss"]
     assert (tmp_path / "results" / "runs" / "A3-R1-01_seed42.json").exists()
     assert list(runner.summary("A3").index) == ["A3-R1-01"]
+    with pytest.raises(ValueError, match="different parameters"):   # never reuse a run for another config
+        runner.run("A3-R1-01", "first", "why", fit_predict, {"hidden": 64})
