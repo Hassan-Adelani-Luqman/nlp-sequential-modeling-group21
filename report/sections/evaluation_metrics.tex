@@ -1,0 +1,104 @@
+% ---------------------------------------------------------------------------
+% Evaluation metrics (Methodology, Section 4) - drafted by M1.
+% Citation keys match report/references.bib. Numbers come from results/
+% (notebooks/02_baselines.ipynb); update the R3 test-set numbers when final.
+% Needs in the preamble: \usepackage{booktabs, amsmath} (table rules, equation).
+% ---------------------------------------------------------------------------
+\subsection{Evaluation Metrics}
+\label{sec:metrics}
+
+The task is closed-set classification of a clip into one of $K=12$ words. Every model outputs a probability
+vector $\hat{\mathbf{p}}_i$, and every model is scored by the same code (\texttt{src/evaluate.py}), so the
+numbers are comparable across approaches. Table~\ref{tab:metrics} summarises the metrics and what each adds.
+
+\paragraph{Log loss (co-primary)}
+The official challenge metric~\cite{zindi2021swahili} is the multi-class log loss,
+\begin{equation}
+  \mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N} \log \hat{p}_{i,y_i},
+\end{equation}
+where $y_i$ is the true word of clip $i$. Log loss is a strictly proper scoring rule: its expected value is
+minimised only by reporting the true class probabilities, so it rewards honest confidence rather than just the
+top-ranked label~\cite{gneiting2007strictly}. This matters for the intended use. A voice interface for mobile
+money or a helpline must decide whether to act on a recognised digit or ask the caller to repeat it, and that
+decision depends on the confidence. Log loss also punishes confident mistakes severely. Assigning probability
+$0.01$ to the true word costs $4.6$ nats, against $\ln 12 \approx 2.48$ for a uniform guess.
+
+Our own experiments show why accuracy alone is not enough. For the MFCC-statistics SVM (A1), the probability
+method changed the log loss far more than the accuracy. libsvm's pairwise-coupled Platt
+probabilities~\cite{platt1999probabilistic,wu2004probability} gave a validation log loss of $0.880$ at $74.3\%$
+accuracy. The one-vs-rest sigmoid calibration that scikit-learn now recommends gave $1.230$ at $73.5\%$, and
+temperature calibration gave $1.153$ at $73.7\%$. Accuracy is almost unchanged, yet log loss is $40\%$ worse.
+
+\paragraph{Accuracy and macro-F1 (co-primary)}
+The training set is exactly balanced (350 clips per word) and the frozen validation and test splits hold 52--53
+clips per word. Accuracy is therefore not inflated by a majority class, and it is the conventional headline for
+keyword spotting~\cite{warden2018speech}. We also report macro-F1, the unweighted mean of per-class
+F1~\cite{sokolova2009systematic}. It penalises a model that over-predicts one word, which accuracy on a balanced
+set only partly reveals. We compute it as the mean of per-class F1 scores, not the F1 of mean precision and
+recall, since the two definitions can diverge~\cite{opitz2019macro}. Per-class precision, recall and F1, and
+the $12\times12$ confusion matrix, show which words fail. For example, A1's recall is only $66\%$ for
+\textit{mbili}, which it confuses with \textit{ndio}.
+
+\paragraph{Calibration}
+We measure calibration with the expected calibration error (ECE, 15 equal-width confidence
+bins)~\cite{naeini2015obtaining,guo2017calibration} and with reliability diagrams. Poor calibration is corrected
+post hoc with temperature scaling~\cite{guo2017calibration}: a single scalar $T$ divides the logits (for the
+HMM, the per-frame log-likelihoods) before the softmax. It changes the confidence but never the predicted
+class, so accuracy and F1 are unaffected. To keep the validation log loss honest, $T$ is \emph{cross-fitted}:
+each validation fold is calibrated with a $T$ fitted on the other four folds. $T$ is then refitted on the whole
+validation split for use on the test split.
+
+\paragraph{Task-specific diagnostic: sound-alike pairs}
+The research question is whether modelling temporal order helps. We therefore track, for word pairs that share
+sounds, the share of the pair's clips predicted as the other word of the pair. The pairs are
+\textit{tisa}/\textit{sita} (an anagram: the same sounds in a different order), \textit{nne}/\textit{nane},
+\textit{tatu}/\textit{tano} and \textit{saba}/\textit{sita}. This links the evaluation directly to the
+hypothesis. The order-free A1 confuses \textit{tisa}/\textit{sita} on $6.7\%$ of their validation clips, while
+the order-aware HMM (A2) confuses them on none.
+
+\paragraph{Uncertainty and significance}
+Model selection uses the validation split only. The test split is used once, in the final round, after every
+configuration is frozen. Neural models are trained with three seeds and reported as mean $\pm$ standard
+deviation. For every model we report a 95\% percentile bootstrap confidence interval (1{,}000
+resamples)~\cite{efron1993introduction}. Pairs of models are compared on the same test clips with the exact
+McNemar test on their discordant predictions~\cite{mcnemar1947note}. Dietterich found that this test has an
+acceptable Type~I error, and recommends it when each learning algorithm can be run only
+once~\cite{dietterich1998approximate}. That fits our setting: retraining the pretrained transformer the ten
+times a $5\times2$ cross-validated test requires is too expensive. Comparisons against the best
+model are corrected for multiplicity with Holm's procedure~\cite{holm1979simple}.
+
+\paragraph{Limitations of the evaluation}
+\begin{enumerate}
+  \item \emph{Selection bias.} The final baselines were chosen from 21 logged runs on the validation split, so
+        validation scores are optimistic~\cite{cawley2010overfitting}. Only the test split gives unbiased
+        estimates.
+  \item \emph{Sample size.} With 630 test clips, the 95\% interval on accuracy is about $\pm1.7$ points at
+        $95\%$ accuracy and about $\pm3.2$ points at $78\%$. The pair diagnostics rest on about 105 clips per pair,
+        so a single clip moves them by about one percentage point.
+  \item \emph{Unknown speakers.} The data has no speaker identifiers, so the same speaker may appear in both
+        training and test clips. All scores may therefore overstate performance on unseen speakers.
+  \item \emph{Closed set.} The metrics say nothing about rejecting words outside the 12-word vocabulary, which a
+        deployed system would need.
+  \item \emph{Log loss sensitivity.} A handful of confident errors can dominate log loss, so it is always reported
+        together with accuracy and ECE. ECE itself depends on the binning, and with 630 clips the low-confidence
+        bins are sparse.
+\end{enumerate}
+
+\begin{table}[t]
+  \centering
+  \caption{Evaluation metrics and their role.}
+  \label{tab:metrics}
+  \small
+  \begin{tabular}{@{}p{0.22\linewidth}p{0.34\linewidth}p{0.34\linewidth}@{}}
+    \toprule
+    Metric & Why we use it & Limitation \\
+    \midrule
+    Log loss & Official metric; proper scoring rule; rewards honest confidence & Dominated by a few confident errors \\
+    Accuracy & Balanced classes; standard for keyword spotting & Ignores confidence \\
+    Macro-F1, per class & Exposes words a model systematically fails & Not a probability metric \\
+    ECE + reliability & Directly measures calibration & Depends on binning; sparse bins \\
+    Pair confusion & Tests the temporal-order hypothesis & About 105 clips per pair \\
+    Bootstrap CI, McNemar & Separates real differences from noise & One split; no speaker grouping \\
+    \bottomrule
+  \end{tabular}
+\end{table}
