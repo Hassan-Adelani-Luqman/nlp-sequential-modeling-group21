@@ -15,7 +15,7 @@ its sounds. *tisa* (nine) and *sita* (six) contain the same sounds in a differen
 
 | ID | Approach | Uses temporal order? | Owner |
 |---|---|---|---|
-| A1 | MFCC summary statistics + SVM | no (bag of frames) | M1 |
+| A1 | MFCC summary statistics + logistic regression | no (bag of frames; its Δ features keep ~90 ms of local change) | M1 |
 | A2 | GMM-HMM per word | yes (Markov states) | M1 |
 | A3 | BiLSTM + attention on log-mel frames | yes (recurrent) | M2 |
 | A4 | TC-ResNet (1D convolutions over time) | yes (convolutional) | M3 |
@@ -35,8 +35,14 @@ The full project plan is in [Plan.md](Plan.md).
   - 0% *tisa/sita*, *nne/nane* and *tatu/tano* confusion
   - Seed check (3 seeds): val log loss 0.137 ± 0.004, accuracy 96.9% ± 0.2; checkpoints saved for the Phase 7 test run
   - Interpretability: attention concentrates on the word (median 100% of the weight); a streaming, forward-only A3 reaches 80% accuracy 500 ms into the word
-- [x] Report drafts: [evaluation metrics](report/sections/evaluation_metrics.tex) (M1), [methodology](report/sections/methodology.tex) (M2), [related work](report/sections/related_work.tex) (M2), [literature notes](report/lit_notes.md) (M1, M2), [verified bibliography](report/references.bib)
-- [ ] Phases 3, 5–8: EDA, neural models, tuning, final evaluation, error analysis
+- [x] Phase 3 EDA ([notebooks/01_eda.ipynb](notebooks/01_eda.ipynb)): durations, loudness and SNR, spectra, sound-alike pairs, t-SNE, pitch. Every finding ends in a modelling decision.
+- [x] A4 rounds R1 + R2 ([notebooks/04_tcresnet.ipynb](notebooks/04_tcresnet.ipynb), 12 logged runs, mostly on a Kaggle T4)
+  - TC-ResNet8-1.5 on MFCC-40 from a 2.0 s window: **97.1%** val accuracy, log loss 0.119, with 150K parameters (A3: 855K)
+  - Seed check (3 seeds): val log loss 0.135 ± 0.023, accuracy 96.8% ± 0.3. A4 ties with A3 on average, but is less stable across seeds.
+  - A failed run (augmentation fill bug) and the runs it made stale are kept in [results/failed_runs/](results/failed_runs/) and [results/superseded_runs/](results/superseded_runs/)
+- [x] Temporal-order stress test ([notebooks/07_order_stress_test.ipynb](notebooks/07_order_stress_test.ipynb)): on reversed audio, A2–A4 fall from 95–97% to 21–39% accuracy, while an order-free control is unchanged
+- [x] Report drafts: [evaluation metrics](report/sections/evaluation_metrics.tex) (M1), [methodology](report/sections/methodology.tex) (M2, M3), [related work](report/sections/related_work.tex) (M2, M3), [dataset & EDA](report/sections/dataset_eda.tex) (M3), [limitations & responsible AI](report/sections/limitations_responsible_ai.tex) (M3), [literature notes](report/lit_notes.md) (M1–M3), [verified bibliography](report/references.bib)
+- [ ] Phases 5–8: A5 (XLS-R), final test evaluation, error analysis
 - [ ] Report, demo video, contribution tracker (links added on submission)
 
 ## Quick start
@@ -121,7 +127,7 @@ Crop options:
 ```
 configs/        base.yaml (shared settings) + one YAML per experiment
 data/           README with download steps; splits/ = frozen split (committed); raw/ = git-ignored audio
-notebooks/      00_setup_check, 01_eda, 02_baselines, 03_bilstm, 04_tcresnet, 05_xlsr, 06_results_error_analysis
+notebooks/      00_setup_check, 01_eda, 02_baselines, 03_bilstm, 04_tcresnet, 05_xlsr, 06_results_error_analysis, 07_order_stress_test
 src/            paths.py · data.py · features.py · utils.py · evaluate.py · (augment.py, train_torch.py, train_hf.py, models/)
 results/        runs/ (one JSON per run) · experiments.csv · predictions/ · metrics/ · figures/   (cache/ is git-ignored)
 tests/          smoke tests on synthetic audio (pytest)
