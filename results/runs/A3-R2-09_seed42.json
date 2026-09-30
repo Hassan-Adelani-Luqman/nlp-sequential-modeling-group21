@@ -1,0 +1,20 @@
+{
+  "exp_id": "A3-R2-09",
+  "date": "2026-09-30 09:55",
+  "member": "M2",
+  "approach": "A3",
+  "round": "R2",
+  "config_file": "notebooks/03_bilstm.ipynb",
+  "seed": 42,
+  "change_vs_previous": "silence trim (top_db 30) + fixed length instead of the energy window",
+  "rationale": "the other way of locating the word; it left noisy tails for the HMM",
+  "val_macro_f1": 0.7601,
+  "val_logloss": 0.7588,
+  "val_acc": 0.7587,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.5265,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"trim\", \"seconds\": 1.0, \"n_mfcc\": 40}, \"model\": {\"hidden\": 128, \"layers\": 2, \"dropout\": 0.3, \"bidirectional\": true, \"pooling\": \"attention\", \"conv_frontend\": false}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"specaugment\", \"best_epoch\": 17, \"epochs_run\": 22, \"temperature\": 0.8797487689479608, \"n_params\": 687372}"
+}

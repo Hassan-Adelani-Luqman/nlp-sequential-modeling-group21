@@ -1,0 +1,32 @@
+approach: A3
+exp_id: A3-R2-12
+selected_by: lowest validation log loss over rounds R1 and R2
+params:
+  features:
+    feature: mfcc
+    crop: energy
+    seconds: 1.0
+    n_mfcc: 40
+  model:
+    hidden: 128
+    layers: 2
+    dropout: 0.3
+    bidirectional: true
+    pooling: attention
+    conv_frontend: true
+  train:
+    epochs: 40
+    batch_size: 64
+    lr: 0.002
+    patience: 5
+  augment: specaugment
+extra:
+  best_epoch: 24
+  epochs_run: 29
+  temperature: 0.6740990679240638
+  n_params: 855052
+val:
+  log_loss: 0.134
+  accuracy: 0.9698
+  macro_f1: 0.9699
+  ece: 0.0163

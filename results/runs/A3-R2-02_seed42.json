@@ -1,0 +1,20 @@
+{
+  "exp_id": "A3-R2-02",
+  "date": "2026-09-30 09:51",
+  "member": "M2",
+  "approach": "A3",
+  "round": "R2",
+  "config_file": "notebooks/03_bilstm.ipynb",
+  "seed": 42,
+  "change_vs_previous": "full augmentation: SpecAugment + time shift + tempo 0.9-1.1x + noise at 10-30 dB SNR",
+  "rationale": "simulate speaker-rate and recording variation (synthetic only: no external data allowed)",
+  "val_macro_f1": 0.9587,
+  "val_logloss": 0.1664,
+  "val_acc": 0.9587,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.859,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"hidden\": 128, \"layers\": 2, \"dropout\": 0.3, \"bidirectional\": true, \"pooling\": \"attention\", \"conv_frontend\": false}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"full\", \"best_epoch\": 27, \"epochs_run\": 32, \"temperature\": 0.7094014216123964, \"n_params\": 630028}"
+}

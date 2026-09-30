@@ -1,0 +1,20 @@
+{
+  "exp_id": "A3-R2-03",
+  "date": "2026-09-30 09:51",
+  "member": "M2",
+  "approach": "A3",
+  "round": "R2",
+  "config_file": "notebooks/03_bilstm.ipynb",
+  "seed": 42,
+  "change_vs_previous": "last hidden state instead of attention pooling",
+  "rationale": "does learned attention over frames beat the recurrence's final state?",
+  "val_macro_f1": 0.6886,
+  "val_logloss": 0.915,
+  "val_acc": 0.6968,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.5205,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"hidden\": 128, \"layers\": 2, \"dropout\": 0.3, \"bidirectional\": true, \"pooling\": \"last\", \"conv_frontend\": false}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"specaugment\", \"best_epoch\": 40, \"epochs_run\": 40, \"temperature\": 0.8018876117566254, \"n_params\": 597004}"
+}

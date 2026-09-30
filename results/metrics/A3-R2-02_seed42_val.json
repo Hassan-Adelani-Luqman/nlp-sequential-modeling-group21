@@ -1,0 +1,118 @@
+{
+  "params": {
+    "features": {
+      "feature": "logmel",
+      "crop": "energy",
+      "seconds": 1.5
+    },
+    "model": {
+      "hidden": 128,
+      "layers": 2,
+      "dropout": 0.3,
+      "bidirectional": true,
+      "pooling": "attention",
+      "conv_frontend": false
+    },
+    "train": {
+      "epochs": 40,
+      "batch_size": 64,
+      "lr": 0.001,
+      "patience": 5
+    },
+    "augment": "full"
+  },
+  "extra": {
+    "best_epoch": 27,
+    "epochs_run": 32,
+    "temperature": 0.7094014216123964,
+    "n_params": 630028
+  },
+  "metrics": {
+    "macro_f1": 0.9587451018210377,
+    "weighted_f1": 0.9587677787612602,
+    "accuracy": 0.9587301587301588,
+    "log_loss": 0.16641559943797626,
+    "roc_auc_ovr": 0.9974929964689031,
+    "ece": 0.015528544064037652,
+    "per_class": {
+      "hapana": {
+        "precision": 0.8947368421052632,
+        "recall": 0.9622641509433962,
+        "f1": 0.9272727272727272,
+        "support": 53
+      },
+      "kumi": {
+        "precision": 0.9122807017543859,
+        "recall": 1.0,
+        "f1": 0.9541284403669725,
+        "support": 52
+      },
+      "mbili": {
+        "precision": 1.0,
+        "recall": 0.9622641509433962,
+        "f1": 0.9807692307692307,
+        "support": 53
+      },
+      "moja": {
+        "precision": 0.9607843137254902,
+        "recall": 0.9423076923076923,
+        "f1": 0.9514563106796117,
+        "support": 52
+      },
+      "nane": {
+        "precision": 0.9622641509433962,
+        "recall": 0.9807692307692307,
+        "f1": 0.9714285714285714,
+        "support": 52
+      },
+      "ndio": {
+        "precision": 0.9444444444444444,
+        "recall": 0.9622641509433962,
+        "f1": 0.9532710280373832,
+        "support": 53
+      },
+      "nne": {
+        "precision": 0.9583333333333334,
+        "recall": 0.8846153846153846,
+        "f1": 0.92,
+        "support": 52
+      },
+      "saba": {
+        "precision": 0.9803921568627451,
+        "recall": 0.9615384615384616,
+        "f1": 0.970873786407767,
+        "support": 52
+      },
+      "sita": {
+        "precision": 0.9807692307692307,
+        "recall": 0.9622641509433962,
+        "f1": 0.9714285714285714,
+        "support": 53
+      },
+      "tano": {
+        "precision": 0.9803921568627451,
+        "recall": 0.9433962264150944,
+        "f1": 0.9615384615384616,
+        "support": 53
+      },
+      "tatu": {
+        "precision": 0.9464285714285714,
+        "recall": 1.0,
+        "f1": 0.9724770642201835,
+        "support": 53
+      },
+      "tisa": {
+        "precision": 1.0,
+        "recall": 0.9423076923076923,
+        "f1": 0.9702970297029703,
+        "support": 52
+      }
+    }
+  },
+  "pair_confusion": {
+    "tisa/sita": 0.0,
+    "nne/nane": 0.0,
+    "tatu/tano": 0.0,
+    "saba/sita": 0.0
+  }
+}

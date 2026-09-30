@@ -1,0 +1,20 @@
+{
+  "exp_id": "A3-R2-04",
+  "date": "2026-09-30 09:52",
+  "member": "M2",
+  "approach": "A3",
+  "round": "R2",
+  "config_file": "notebooks/03_bilstm.ipynb",
+  "seed": 42,
+  "change_vs_previous": "mean pooling instead of attention pooling",
+  "rationale": "does learned attention beat uniform averaging over time?",
+  "val_macro_f1": 0.9383,
+  "val_logloss": 0.2352,
+  "val_acc": 0.9381,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.4489,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"hidden\": 128, \"layers\": 2, \"dropout\": 0.3, \"bidirectional\": true, \"pooling\": \"mean\", \"conv_frontend\": false}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"specaugment\", \"best_epoch\": 34, \"epochs_run\": 39, \"temperature\": 0.7196714149832875, \"n_params\": 597004}"
+}

@@ -1,0 +1,20 @@
+{
+  "exp_id": "A3-R2-01",
+  "date": "2026-09-30 09:50",
+  "member": "M2",
+  "approach": "A3",
+  "round": "R2",
+  "config_file": "notebooks/03_bilstm.ipynb",
+  "seed": 42,
+  "change_vs_previous": "+ SpecAugment (2 time masks <= 20 frames, 2 frequency masks <= 8 bands)",
+  "rationale": "only ~245 clips per word: masking should reduce over-fitting",
+  "val_macro_f1": 0.9604,
+  "val_logloss": 0.1532,
+  "val_acc": 0.9603,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.5146,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"hidden\": 128, \"layers\": 2, \"dropout\": 0.3, \"bidirectional\": true, \"pooling\": \"attention\", \"conv_frontend\": false}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"specaugment\", \"best_epoch\": 32, \"epochs_run\": 37, \"temperature\": 0.6783935053760535, \"n_params\": 630028}"
+}

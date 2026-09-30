@@ -1,0 +1,20 @@
+{
+  "exp_id": "A3-R2-05",
+  "date": "2026-09-30 09:52",
+  "member": "M2",
+  "approach": "A3",
+  "round": "R2",
+  "config_file": "notebooks/03_bilstm.ipynb",
+  "seed": 42,
+  "change_vs_previous": "unidirectional LSTM (forward only)",
+  "rationale": "how much does future context help? A unidirectional model could run while the word is spoken",
+  "val_macro_f1": 0.9368,
+  "val_logloss": 0.2463,
+  "val_acc": 0.9365,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.4077,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"hidden\": 128, \"layers\": 2, \"dropout\": 0.3, \"bidirectional\": false, \"pooling\": \"attention\", \"conv_frontend\": false}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"specaugment\", \"best_epoch\": 34, \"epochs_run\": 39, \"temperature\": 0.7370336407998096, \"n_params\": 249612}"
+}
