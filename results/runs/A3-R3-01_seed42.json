@@ -1,0 +1,20 @@
+{
+  "exp_id": "A3-R3-01",
+  "date": "2026-09-30 12:13",
+  "member": "M2",
+  "approach": "A3",
+  "round": "R3",
+  "config_file": "notebooks/03_bilstm.ipynb",
+  "seed": 42,
+  "change_vs_previous": "final configuration (A3-R2-12) retrained with seed 42",
+  "rationale": "seed variance on validation; checkpoints for the Phase 7 test evaluation",
+  "val_macro_f1": 0.9699,
+  "val_logloss": 0.134,
+  "val_acc": 0.9698,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 1.1825,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"energy\", \"seconds\": 1.0, \"n_mfcc\": 40}, \"model\": {\"hidden\": 128, \"layers\": 2, \"dropout\": 0.3, \"bidirectional\": true, \"pooling\": \"attention\", \"conv_frontend\": true}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.002, \"patience\": 5}, \"augment\": \"specaugment\", \"seed\": 42, \"best_epoch\": 24, \"epochs_run\": 29, \"temperature\": 0.6740990679240638, \"n_params\": 855052}"
+}
