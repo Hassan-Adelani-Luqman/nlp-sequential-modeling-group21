@@ -26,10 +26,11 @@ The full project plan is in [Plan.md](Plan.md).
 ## Status
 - [x] Phase 1: `src/paths.py`, `src/data.py`, `src/features.py`, `src/utils.py`, `src/evaluate.py`, tests
 - [x] Frozen split committed in `data/splits/` (hash `b74d294f…`)
-- [x] Phase 4: classical baselines, round R0 ([notebooks/02_baselines.ipynb](notebooks/02_baselines.ipynb), 17 logged runs)
+- [x] Phase 4 + R2 for the classical baselines ([notebooks/02_baselines.ipynb](notebooks/02_baselines.ipynb), 21 logged runs)
   - A1 (MFCC stats + logistic regression): **77.9%** val accuracy, log loss 0.725
-  - A2 (8-state × 4-Gaussian GMM-HMM): **95.1%** val accuracy, log loss 0.220
+  - A2 (12-state × 8-Gaussian GMM-HMM): **95.2%** val accuracy, log loss 0.180
   - *tisa/sita* confusion: 6.7% (A1) vs 0% (A2)
+- [x] Report drafts (M1): [evaluation metrics](report/sections/evaluation_metrics.tex), [literature notes](report/lit_notes.md), [verified bibliography](report/references.bib)
 - [ ] Phases 3, 5–8: EDA, neural models, tuning, final evaluation, error analysis
 - [ ] Report, demo video, contribution tracker (links added on submission)
 
