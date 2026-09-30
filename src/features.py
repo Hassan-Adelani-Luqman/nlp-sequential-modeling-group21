@@ -202,6 +202,8 @@ def _cache_search_dirs() -> list[Path]:
     kaggle_input = Path("/kaggle/input")
     if kaggle_input.is_dir():
         dirs.extend(sorted(p for p in kaggle_input.iterdir() if p.is_dir()))
+        # the features dataset may be mounted deeper: locate it by its manifest
+        dirs.extend(sorted({p.parent for p in kaggle_input.rglob("features_manifest.json")}))
     return dirs
 
 

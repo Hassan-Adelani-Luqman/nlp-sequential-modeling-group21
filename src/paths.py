@@ -51,6 +51,8 @@ def _candidate_data_dirs(env: str) -> list[Path]:
         candidates.append(kaggle_input / KAGGLE_DATASET.split("/")[-1])
         if kaggle_input.is_dir():
             candidates.extend(sorted(p for p in kaggle_input.iterdir() if p.is_dir()))
+            # Kaggle may mount datasets deeper (e.g. /kaggle/input/<owner>/<slug>/...): find Train.csv at any depth
+            candidates.extend(sorted({p.parent for p in kaggle_input.rglob(TRAIN_FILE)}))
     elif env == "colab":
         candidates += [Path("/content/data/raw"), Path("/content/drive/MyDrive/group21-swahili-audio")]
     candidates.append(REPO_ROOT / "data" / "raw")
