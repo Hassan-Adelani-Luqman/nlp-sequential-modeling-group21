@@ -1,0 +1,109 @@
+"""On-the-fly augmentation of log-mel spectrograms (training split only).
+
+Augmentation works on the cached log-mel features in dB, so GPU sessions never
+decode audio. It uses no external data (the competition rules allow only the
+provided audio). Every transform is synthetic:
+
+* SpecAugment time and frequency masking (Park et al., 2019);
+* time shift of up to +-``shift_frames`` (10 ms each), padding with silence rather than wrapping;
+* tempo perturbation: frames resampled by a factor in ``stretch`` (0.9-1.1x speed);
+* noise injection at a random SNR (dB) in the mel *power* domain. This
+  approximates additive white noise, which with area-normalised mel filters
+  adds roughly equal power to every band.
+
+Usage::
+
+    aug = LogMelAugment(seed=42)          # all transforms
+    aug = LogMelAugment.specaugment_only()
+    x_aug = aug(x)                        # x: (frames, mels) log-mel in dB
+"""
+from __future__ import annotations
+
+import numpy as np
+
+TOP_DB = 80.0  # dynamic range used when the log-mel features were computed (src.features.log_mel)
+
+
+class LogMelAugment:
+    def __init__(self, time_masks: int = 2, time_width: int = 20, freq_masks: int = 2, freq_width: int = 8,
+                 shift_frames: int = 10, stretch: tuple[float, float] | None = (0.9, 1.1), p_stretch: float = 0.5,
+                 noise_snr_db: tuple[float, float] | None = (10.0, 30.0), p_noise: float = 0.5, seed: int | None = None):
+        self.time_masks, self.time_width = time_masks, time_width
+        self.freq_masks, self.freq_width = freq_masks, freq_width
+        self.shift_frames = shift_frames
+        self.stretch, self.p_stretch = stretch, p_stretch
+        self.noise_snr_db, self.p_noise = noise_snr_db, p_noise
+        self.rng = np.random.default_rng(seed)
+
+    @classmethod
+    def specaugment_only(cls, seed: int | None = None) -> "LogMelAugment":
+        return cls(shift_frames=0, stretch=None, noise_snr_db=None, seed=seed)
+
+    def describe(self) -> dict:
+        """Settings, for the experiment log."""
+        return {"time_masks": self.time_masks, "time_width": self.time_width, "freq_masks": self.freq_masks,
+                "freq_width": self.freq_width, "shift_frames": self.shift_frames, "stretch": self.stretch,
+                "noise_snr_db": self.noise_snr_db}
+
+    # ------------------------------------------------------------------ transforms
+    def _stretch(self, x: np.ndarray) -> np.ndarray:
+        """Resample frames by a speed factor, then centre-crop/pad back to the original length."""
+        rate = self.rng.uniform(*self.stretch)
+        n = x.shape[0]
+        new_n = max(2, int(round(n / rate)))
+        src = np.linspace(0, n - 1, new_n)
+        stretched = np.stack([np.interp(src, np.arange(n), x[:, m]) for m in range(x.shape[1])], axis=1)
+        if new_n >= n:
+            start = (new_n - n) // 2
+            return stretched[start: start + n]
+        pad = n - new_n
+        floor = x.min()
+        return np.pad(stretched, ((pad // 2, pad - pad // 2), (0, 0)), constant_values=floor)
+
+    def _shift(self, x: np.ndarray) -> np.ndarray:
+        k = int(self.rng.integers(-self.shift_frames, self.shift_frames + 1))
+        if k == 0:
+            return x
+        out = np.full_like(x, x.min())  # silence, not wrap-around
+        if k > 0:
+            out[k:] = x[:-k]
+        else:
+            out[:k] = x[-k:]
+        return out
+
+    def _noise(self, x: np.ndarray) -> np.ndarray:
+        """Add noise at a target SNR relative to the speech frames' mean power."""
+        power = 10.0 ** (x / 10.0)
+        frame_power = power.mean(axis=1)
+        speech = frame_power >= np.median(frame_power)  # louder half of the frames ~ the word
+        signal = power[speech].mean()
+        snr = self.rng.uniform(*self.noise_snr_db)
+        noise = signal / (10.0 ** (snr / 10.0)) * self.rng.exponential(1.0, size=x.shape)  # chi-square-like per bin
+        out = 10.0 * np.log10(power + noise)
+        return np.maximum(out, out.max() - TOP_DB)
+
+    def _mask(self, x: np.ndarray) -> np.ndarray:
+        x = x.copy()
+        fill = x.mean()
+        n_frames, n_mels = x.shape
+        for _ in range(self.time_masks):
+            w = int(self.rng.integers(0, self.time_width + 1))
+            if w:
+                t0 = int(self.rng.integers(0, max(1, n_frames - w)))
+                x[t0: t0 + w, :] = fill
+        for _ in range(self.freq_masks):
+            w = int(self.rng.integers(0, self.freq_width + 1))
+            if w:
+                f0 = int(self.rng.integers(0, max(1, n_mels - w)))
+                x[:, f0: f0 + w] = fill
+        return x
+
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        x = np.asarray(x, dtype=np.float32)
+        if self.stretch and self.rng.random() < self.p_stretch:
+            x = self._stretch(x)
+        if self.shift_frames:
+            x = self._shift(x)
+        if self.noise_snr_db and self.rng.random() < self.p_noise:
+            x = self._noise(x)
+        return self._mask(x).astype(np.float32)
