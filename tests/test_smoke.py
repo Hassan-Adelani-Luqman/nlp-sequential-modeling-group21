@@ -144,6 +144,18 @@ def test_cached_features_roundtrip(fake_data, tmp_path, monkeypatch):
     assert len(Zs) == 36 and np.allclose(np.concatenate(Zs).mean(0), 0, atol=1e-3)
 
 
+def test_stress_perturbations_keep_content_change_order():
+    from src.stress import perturb
+
+    wav = np.arange(16000, dtype=np.float32)                    # 1 s ramp: order is easy to check
+    rev, shuf = perturb(wav, "reversed"), perturb(wav, "shuffled", seed=3)
+    assert np.array_equal(rev, wav[::-1]) and len(shuf) == len(wav)
+    assert np.array_equal(np.sort(shuf), wav)                    # same samples ...
+    assert not np.array_equal(shuf, wav)                         # ... in a different order
+    assert np.array_equal(perturb(wav, "shuffled", seed=3), shuf)  # reproducible
+    assert perturb(wav, "original") is wav
+
+
 # --------------------------------------------------------------------------- evaluation & logging
 def test_compute_metrics():
     y_true = np.array(list(range(12)) * 3)
