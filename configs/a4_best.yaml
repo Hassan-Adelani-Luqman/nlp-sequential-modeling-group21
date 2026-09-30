@@ -1,0 +1,31 @@
+approach: A4
+exp_id: A4-R2-05
+selected_by: lowest validation log loss over rounds R1 and R2
+params:
+  features:
+    feature: mfcc
+    crop: energy
+    seconds: 2.0
+    n_mfcc: 40
+  model:
+    blocks: 3
+    width: 1.5
+    kernel: 9
+    dropout: 0.5
+  train:
+    epochs: 40
+    batch_size: 64
+    lr: 0.001
+    patience: 5
+  augment: full
+extra:
+  best_epoch: 27
+  epochs_run: 32
+  temperature: 0.6609382679869685
+  n_params: 149988
+  receptive_field_ms: 1710
+val:
+  log_loss: 0.1194
+  accuracy: 0.9714
+  macro_f1: 0.9715
+  ece: 0.0126

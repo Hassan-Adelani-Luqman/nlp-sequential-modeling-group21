@@ -1,0 +1,20 @@
+{
+  "exp_id": "A4-R1-01",
+  "date": "2026-09-30 13:00",
+  "member": "M3",
+  "approach": "A4",
+  "round": "R1",
+  "config_file": "notebooks/04_tcresnet.ipynb",
+  "seed": 42,
+  "change_vs_previous": "first A4 run: TC-ResNet8-1.5 (3 residual blocks, kernel 9), log-mel 64, no augmentation",
+  "rationale": "default configuration from Plan.md Phase 5",
+  "val_macro_f1": 0.9495,
+  "val_logloss": 0.1755,
+  "val_acc": 0.9492,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.4071,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"blocks\": 3, \"width\": 1.5, \"kernel\": 9, \"dropout\": 0.5}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"none\", \"best_epoch\": 12, \"epochs_run\": 17, \"temperature\": 0.626007407070026, \"n_params\": 145956, \"receptive_field_ms\": 1710}"
+}

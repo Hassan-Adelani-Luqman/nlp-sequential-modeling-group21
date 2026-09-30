@@ -1,0 +1,20 @@
+{
+  "exp_id": "A4-R2-02",
+  "date": "2026-09-30 13:01",
+  "member": "M3",
+  "approach": "A4",
+  "round": "R2",
+  "config_file": "notebooks/04_tcresnet.ipynb",
+  "seed": 42,
+  "change_vs_previous": "full augmentation: SpecAugment + time shift + tempo 0.9-1.1x + noise at 10-30 dB SNR",
+  "rationale": "simulate speaker-rate and recording variation (synthetic only: no external data allowed)",
+  "val_macro_f1": 0.962,
+  "val_logloss": 0.1404,
+  "val_acc": 0.9619,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.8955,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"logmel\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"blocks\": 3, \"width\": 1.5, \"kernel\": 9, \"dropout\": 0.5}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"full\", \"best_epoch\": 28, \"epochs_run\": 33, \"temperature\": 0.6641868043205396, \"n_params\": 145956, \"receptive_field_ms\": 1710}"
+}

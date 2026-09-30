@@ -1,0 +1,20 @@
+{
+  "exp_id": "A4-R3-01",
+  "date": "2026-09-30 13:52",
+  "member": "M3",
+  "approach": "A4",
+  "round": "R3",
+  "config_file": "notebooks/04_tcresnet.ipynb",
+  "seed": 7,
+  "change_vs_previous": "final configuration (A4-R2-05) retrained with seed 7",
+  "rationale": "seed variance on validation; checkpoints for the Phase 7 test evaluation",
+  "val_macro_f1": 0.9651,
+  "val_logloss": 0.161,
+  "val_acc": 0.9651,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 0.5655,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"energy\", \"seconds\": 2.0, \"n_mfcc\": 40}, \"model\": {\"blocks\": 3, \"width\": 1.5, \"kernel\": 9, \"dropout\": 0.5}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"full\", \"seed\": 7, \"best_epoch\": 11, \"epochs_run\": 16, \"temperature\": 0.6358075546367566, \"n_params\": 149988, \"receptive_field_ms\": 1710}"
+}
