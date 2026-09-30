@@ -1,0 +1,20 @@
+{
+  "exp_id": "A2-R2-01",
+  "date": "2026-09-30 02:16",
+  "member": "M1",
+  "approach": "A2",
+  "round": "R2",
+  "config_file": "notebooks/02_baselines.ipynb",
+  "seed": 42,
+  "change_vs_previous": "8 states x 8 Gaussians: more Gaussians per state than the R0 best (8 x 4)",
+  "rationale": "the R0 best is at the corner of the grid; test richer per-state emission models",
+  "val_macro_f1": 0.9539,
+  "val_logloss": 0.2122,
+  "val_acc": 0.954,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 8.0984,
+  "gpu": "cpu",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"energy\", \"seconds\": 1.5, \"n_mfcc\": 13}, \"cmvn\": true, \"n_states\": 8, \"n_mix\": 8, \"temperature\": 0.38863161154450093, \"median_frames\": 151.0}"
+}

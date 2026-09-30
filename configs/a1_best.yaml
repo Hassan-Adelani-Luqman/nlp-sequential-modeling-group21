@@ -1,6 +1,6 @@
 approach: A1
 exp_id: A1-R0-03
-selected_by: lowest validation log loss in round R0
+selected_by: lowest validation log loss over rounds R0 and R2
 params:
   kind: logreg
   features:

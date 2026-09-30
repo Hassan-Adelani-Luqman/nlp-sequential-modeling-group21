@@ -1,6 +1,6 @@
 approach: A2
-exp_id: A2-R0-12
-selected_by: lowest validation log loss in round R0
+exp_id: A2-R2-03
+selected_by: lowest validation log loss over rounds R0 and R2
 params:
   features:
     feature: mfcc
@@ -8,13 +8,13 @@ params:
     seconds: 1.5
     n_mfcc: 13
   cmvn: true
-  n_states: 8
-  n_mix: 4
+  n_states: 12
+  n_mix: 8
 extra:
-  temperature: 0.3537010650024456
+  temperature: 0.3837024324448259
   median_frames: 151.0
 val:
-  log_loss: 0.22
-  accuracy: 0.9508
-  macro_f1: 0.951
-  ece: 0.0328
+  log_loss: 0.1799
+  accuracy: 0.9524
+  macro_f1: 0.9527
+  ece: 0.0251
