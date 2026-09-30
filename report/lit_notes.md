@@ -137,7 +137,50 @@ These were checked against their abstracts. Each gets one line, with the key in 
   - We use a global tempo change rather than SpecAugment's time warping, and apply masking in the log-mel domain as the paper does.
 
 ## M3: convolutional keyword spotting, African-language speech
-*To be written by M3.*
+
+### sainath2015convolutional: CNNs for small-footprint keyword spotting (Sainath, 2015)
+- **Task / data:** keyword spotting on devices with tight compute limits.
+- **Method:** convolutional architectures designed for two budgets: a limited number of multiplications, and a limited number of parameters.
+- **Key result:** the CNNs gave "between a 27-44% relative improvement in false reject rate compared to a DNN, while fitting into the constraints of each application."
+- **How it informs our project:** this established convolution as the standard architecture for keyword spotting. It motivates a convolutional approach (A4) alongside the recurrent one (A3). Our binding constraint is different, though: very little data (245 clips per word) rather than little compute.
+
+### choi2019temporal: TC-ResNet, temporal convolution for keyword spotting (Choi, 2019)
+- **Task / data:** real-time keyword spotting on mobile phones, evaluated on Google Speech Commands.
+- **Method:** temporal convolutions over the frames, with the frequency axis treated as channels, in a compact residual network. This replaces the deep 2-D convolutions of earlier work.
+- **Key result:** "more than 385× speedup on Google Pixel 1", while surpassing the accuracy of the previous state-of-the-art model.
+- **How it informs our project:**
+  - A4 *is* this architecture. Our default TC-ResNet8 at width 1.5 has 146K parameters.
+  - R2 tests the paper's own design axes: depth (TC-ResNet8 vs TC-ResNet14), kernel width and channel width. It also compares their MFCC input with log-mel.
+
+### bai2018empirical: Convolutional vs recurrent networks for sequences (Bai, 2018)
+- **Task / data:** a systematic comparison of generic convolutional and recurrent architectures across standard sequence-modelling benchmarks.
+- **Method:** a simple temporal convolutional network (TCN), with dilated causal convolutions and residual connections, against LSTMs and GRUs under comparable settings.
+- **Key result:** "a simple convolutional architecture outperforms canonical recurrent networks such as LSTMs across a diverse range of tasks and datasets, while demonstrating longer effective memory."
+- **How it informs our project:**
+  - This is the direct question behind our central comparison, recurrence (A3) against convolution (A4). Bai et al. would predict A4 matches or beats A3.
+  - Our experiment tests whether that holds for very short sequences (one spoken word, about 1 s) and scarce training data.
+
+### menon2018fast: ASR-free keyword spotting for humanitarian monitoring (Menon, 2018)
+- **Task / data:** keyword spotting to support UN relief programmes in parts of Africa where languages are extremely under-resourced, by monitoring radio broadcasts.
+- **Method:** dynamic time warping (DTW) on a small set of recorded isolated keywords provides the supervision for training a CNN keyword spotter. The set is "1920 recorded keywords (40 keyword types, 34 minutes of speech)".
+- **Key result:** the DTW-supervised CNN "substantially outperforms a CNN classifier trained only on the keywords, improving the area under the ROC curve from 0.54 to 0.64."
+- **Caution:** the target context is Uganda (Luganda, Acholi and other regional languages), but the experiments themselves use **South African English** radio news, where transcriptions exist to measure performance. We cite it for the motivation and the low-resource regime, not as evidence about African-language audio.
+- **How it informs our project:**
+  - It shows the real humanitarian demand for small-vocabulary keyword spotting in African languages.
+  - Their data budget (34 minutes of keywords) is similar in scale to ours: 4,200 clips, each word under 1 s.
+  - It also shows how scarce labelled African-language keyword audio is. That makes the Swahili data we have valuable.
+
+### doumbouya2021using: Radio archives for low-resource speech recognition (Doumbouya, 2021)
+- **Task / data:** speech recognition for West African languages, towards a voice assistant for users who cannot read.
+  - The "West African Radio Corpus" has 142 hours of audio in more than 10 languages, from Guinean radio stations.
+  - A labelled virtual-assistant corpus has 10K clips in four languages: French, Maninka, Susu and Pular.
+- **Method:** self-supervised speech representation learning (a wav2vec model, "West African wav2vec") on noisy, unlabelled radio archives.
+- **Key result:**
+  - The pretrained encoder performs similarly to the baseline on multilingual speech recognition, and significantly outperforms it on West African language identification.
+  - The paper shares "the first-ever speech recognition models for Maninka, Pular and Susu".
+- **How it informs our project:**
+  - It grounds our real-world motivation: voice interfaces for low-literacy users in African languages, built around small vocabularies such as digits and commands.
+  - It supports self-supervised pretraining on unlabelled audio as the route for low-resource languages, which is the idea behind A5 (XLS-R).
 
 ## M4: transformers and self-supervised speech models
 *To be written by M4.*
