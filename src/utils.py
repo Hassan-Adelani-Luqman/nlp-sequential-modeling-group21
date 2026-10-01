@@ -102,6 +102,19 @@ def log_experiment(row: dict, runs_dir: Path | str | None = None, overwrite: boo
     return path
 
 
+def record_test_metrics(exp_id: str, seed: int, metrics: dict, runs_dir: Path | str | None = None) -> Path:
+    """Fill the ``test_*`` columns of an already logged run (Phase 7: each final model is scored on test once)."""
+    path = run_path(exp_id, seed, runs_dir)
+    if not path.exists():
+        raise FileNotFoundError(f"{path.name} is not logged")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    record.update({"test_macro_f1": round(float(metrics["macro_f1"]), 4),
+                   "test_logloss": round(float(metrics["log_loss"]), 4),
+                   "test_acc": round(float(metrics["accuracy"]), 4)})
+    path.write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
 def run_path(exp_id: str, seed: int, runs_dir: Path | str | None = None) -> Path:
     runs_dir = Path(runs_dir) if runs_dir else results_dir() / "runs"
     return runs_dir / f"{exp_id}_seed{seed}.json"

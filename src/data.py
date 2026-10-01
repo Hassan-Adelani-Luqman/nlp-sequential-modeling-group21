@@ -231,6 +231,22 @@ def load_splits(data_dir: Path | str | None = None, splits_dir: Path | str = SPL
     return {name: _select(meta, name, splits_dir, label2id) for name in SPLIT_NAMES}
 
 
+def stratified_subset(df: pd.DataFrame, fraction: float, seed: int = 42, label_col: str = "label_id") -> pd.DataFrame:
+    """The same ``fraction`` of every word's clips, for the data-size curve (round R4).
+
+    Subsets are nested: each word's clips are shuffled once with ``seed``, and a fraction keeps a prefix
+    of that order. So the 10% subset is part of the 25% subset, which is part of the 50% subset.
+    """
+    if not 0 < fraction <= 1:
+        raise ValueError("fraction must be in (0, 1]")
+    rng = np.random.default_rng(seed)
+    keep = []
+    for _, group in df.groupby(label_col, sort=True):
+        order = group.index.to_numpy()[rng.permutation(len(group))]
+        keep.extend(order[: max(1, int(round(fraction * len(group))))])
+    return df.loc[sorted(keep)].reset_index(drop=True)
+
+
 def load_competition_test(data_dir: Path | str | None = None) -> pd.DataFrame:
     """The unlabelled Zindi Test.csv as ``id, path`` (only for an optional leaderboard submission)."""
     return load_metadata("test", data_dir)

@@ -189,6 +189,50 @@ def bootstrap_ci(y_true, y_pred, metric=None, n_resamples: int = 1000, alpha: fl
     return float(metric(y_true, y_pred)), float(low), float(high)
 
 
+def paired_bootstrap(y_true, prob_a, prob_b, metric=None, n_resamples: int = 1000, alpha: float = 0.05,
+                     seed: int = 0):
+    """Percentile bootstrap CI for ``metric(a) - metric(b)`` on the same resampled clips (default: log loss).
+
+    Returns (difference, low, high). Resampling clips jointly keeps the pairing, so the interval reflects
+    how much the gap between two models depends on which clips happen to be in the test split.
+    """
+    y_true = np.asarray(y_true)
+    prob_a, prob_b = np.asarray(prob_a), np.asarray(prob_b)
+    labels = list(range(prob_a.shape[1]))
+    metric = metric or (lambda t, p: log_loss(t, np.clip(p, 1e-12, 1), labels=labels))
+    rng = np.random.default_rng(seed)
+    n = len(y_true)
+    diffs = []
+    for _ in range(n_resamples):
+        idx = rng.integers(0, n, n)
+        diffs.append(metric(y_true[idx], prob_a[idx]) - metric(y_true[idx], prob_b[idx]))
+    low, high = np.quantile(diffs, [alpha / 2, 1 - alpha / 2])
+    return float(metric(y_true, prob_a) - metric(y_true, prob_b)), float(low), float(high)
+
+
+def holm_correction(p_values) -> np.ndarray:
+    """Holm-Bonferroni adjusted p-values (step-down), returned in the input order (Holm, 1979)."""
+    p = np.asarray(p_values, dtype=float)
+    m = len(p)
+    adjusted = np.empty(m)
+    running = 0.0
+    for rank, i in enumerate(np.argsort(p)):
+        running = max(running, min(1.0, (m - rank) * p[i]))   # monotone: never below an earlier adjusted value
+        adjusted[i] = running
+    return adjusted
+
+
+def reliability_curve(y_true, y_prob, n_bins: int = 10) -> pd.DataFrame:
+    """Top-class confidence against accuracy in equal-width bins (non-empty bins only), for reliability diagrams."""
+    y_true, y_prob = np.asarray(y_true), np.asarray(y_prob)
+    confidence = y_prob.max(axis=1)
+    correct = (y_prob.argmax(axis=1) == y_true).astype(float)
+    bins = np.clip(np.digitize(confidence, np.linspace(0, 1, n_bins + 1)[1:-1], right=True), 0, n_bins - 1)
+    rows = [{"bin": b, "confidence": confidence[bins == b].mean(), "accuracy": correct[bins == b].mean(),
+             "count": int((bins == b).sum())} for b in range(n_bins) if (bins == b).any()]
+    return pd.DataFrame(rows)
+
+
 def mcnemar_test(y_true, pred_a, pred_b) -> dict:
     """Exact McNemar test on the discordant pairs of two classifiers (Dietterich, 1998)."""
     y_true = np.asarray(y_true)

@@ -175,6 +175,17 @@ def test_significance_helpers():
     assert res["only_a_correct"] == 100 and res["p_value"] < 1e-6
 
 
+def test_holm_paired_bootstrap_and_reliability():
+    # Holm (1979): sorted p-values are multiplied by m, m-1, ... and kept monotone; input order is preserved.
+    np.testing.assert_allclose(evaluate.holm_correction([0.01, 0.04, 0.03]), [0.03, 0.06, 0.06])
+    y = np.array([0, 1, 2] * 40)
+    sharp, blurred = np.eye(3)[y] * 0.9 + 0.1 / 3, np.eye(3)[y] * 0.5 + 0.5 / 3
+    diff, low, high = evaluate.paired_bootstrap(y, sharp, blurred, n_resamples=100)
+    assert diff < 0 and low <= diff <= high and high < 0           # the sharper model has a lower log loss
+    curve = evaluate.reliability_curve(y, sharp, n_bins=10)
+    assert curve["count"].sum() == len(y) and np.allclose(curve["accuracy"], 1.0)
+
+
 def test_temperature_scaling_recovers_overconfidence():
     rng = np.random.default_rng(0)
     logits = rng.normal(0, 2, size=(4000, 12))
@@ -248,6 +259,16 @@ def test_prediction_roundtrip(tmp_path):
     assert (df["y_pred"] == prob.argmax(axis=1)).all()
 
 
+def test_stratified_subsets_are_nested_and_balanced():
+    from src.data import stratified_subset
+
+    df = pd.DataFrame({"id": [f"c{i}" for i in range(120)], "label_id": np.repeat(np.arange(12), 10)})
+    small, large = stratified_subset(df, 0.2), stratified_subset(df, 0.5)
+    assert (small.label_id.value_counts() == 2).all() and (large.label_id.value_counts() == 5).all()
+    assert set(small.id) <= set(large.id)                           # nested: 20% is part of 50%
+    assert stratified_subset(df, 1.0).id.tolist() == df.id.tolist()
+
+
 def test_experiment_logging(tmp_path):
     runs = tmp_path / "runs"
     utils.log_experiment({"exp_id": "A3-R1-01", "seed": 42, "member": "M2", "val_macro_f1": 0.812345}, runs)
@@ -259,8 +280,10 @@ def test_experiment_logging(tmp_path):
     with pytest.raises(KeyError):
         utils.log_experiment({"exp_id": "A3-R1-02", "seed": 42, "f1": 0.8}, runs)
 
+    utils.record_test_metrics("A3-R1-01", 42, {"macro_f1": 0.9, "log_loss": 0.123456, "accuracy": 0.91}, runs)
     table = utils.build_experiment_table(runs)
     assert list(table["exp_id"]) == ["A1-R0-01", "A3-R1-01"]
+    assert table.loc[1, "test_logloss"] == 0.1235 and table.loc[1, "val_macro_f1"] == 0.8123   # val fields kept
     assert table.loc[1, "val_macro_f1"] == 0.8123 and table.loc[1, "approach"] == "A3"
     assert (tmp_path / "experiments.csv").exists()
 
