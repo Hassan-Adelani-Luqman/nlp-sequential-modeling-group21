@@ -25,11 +25,12 @@
   \item \emph{Early stopping tuned for one model.} A patience of five epochs suited A3, but cut one A4 seed off at
         epoch 16 of 40, while the learning rate was still high. That run explains most of A4's larger seed spread.
         We did not retune the patience after seeing the seed runs, to avoid selecting on validation once more.
-  \item \emph{Possible label noise.} 10 test and 11 validation clips defeat every order-aware model, including the
-        pretrained A5. On three of them, A3--A5 agree on the same wrong word with at least 80\% confidence
-        (Section~\ref{sec:errors}). These may be mislabelled or unusual recordings. Our triage was automatic and
-        visual, because a listening check of the 21 clips is still pending. We did not relabel anything, so these
-        clips count as errors for every model.
+  \item \emph{Label and collection noise.} 10 test and 11 validation clips defeat every order-aware model. Confident
+        learning and an external recogniser identify one likely label error, three words said in English, and two
+        recordings where the crop missed the word. Most of the rest contain other speech or none
+        (Section~\ref{sec:errors}). No one listened to the clips: our evidence is automatic, and the recogniser is
+        itself fallible on short, noisy clips. We did not relabel anything, so these clips count as errors for every
+        model. Removing the clear cases changes test accuracy by only 0.3 points.
   \item \emph{Pretraining confounds.} The two A5 backbones differ in size (316M against 95M parameters) as well as
         in pretraining language, and XLS-R's pretraining included only 91 hours of Swahili. A5's gains therefore
         cannot be attributed to Swahili data or to the language of pretraining alone. A Transformer trained from

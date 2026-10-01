@@ -57,8 +57,27 @@ validation and test clips (Table~\ref{tab:hard}).
         confidence. One is a test clip labelled \textit{sita} that all four order-aware models hear as
         \textit{tisa}, with 99--100\% confidence.
 \end{itemize}
-We did not relabel anything. The 21 clips are listed in \texttt{results/metrics/listening\_sheet.csv} for a
-listening check.
+Agreement among our models is not independent evidence of a label error, because they were all trained on these
+labels. We therefore checked the labels in two independent ways.
+\begin{itemize}
+  \item \emph{Confident learning}~\cite{northcutt2021confident}, applied to the out-of-sample probabilities of A3--A5,
+        flags only 1 of the 1,260 validation and test clips: the \textit{sita} clip above.
+  \item \emph{An external recogniser:} the multilingual MMS model with its Swahili adapter~\cite{pratap2024scaling},
+        which never saw this dataset, transcribed the 21 hard clips. On 60 easy test clips, it finds the labelled
+        word in 82\% and never names a wrong one, so its positive findings can be trusted.
+\end{itemize}
+The recogniser explains six of the hard clips.
+\begin{itemize}
+  \item \emph{One likely label error:} it hears \textit{tisa} in the clip labelled \textit{sita}, in agreement with
+        confident learning and our models.
+  \item \emph{Three said in English:} two \textit{hapana} clips contain ``no'', and one \textit{tisa} clip contains
+        ``nine''. Our models hear ``nine'' as \textit{nane}.
+  \item \emph{Two crop failures:} the labelled word is in the recording, but outside the window the models saw.
+\end{itemize}
+Most of the remaining transcripts contain other speech, such as a different Swahili phrase or English in the
+background, or no recognisable speech at all. So the hard clips are mostly collection problems, not modelling
+failures. Excluding the two test clips that do not hold the labelled Swahili word raises every model's test accuracy
+by 0.3 points and leaves the ranking unchanged. We did not relabel anything.
 
 \begin{table}[t]
   \centering
