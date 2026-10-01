@@ -1,0 +1,20 @@
+{
+  "exp_id": "A5-R2-06",
+  "date": "2026-09-30 21:17",
+  "member": "M4",
+  "approach": "A5",
+  "round": "R2",
+  "config_file": "notebooks/05_xlsr.ipynb",
+  "seed": 42,
+  "change_vs_previous": "weighted sum of all Transformer layers instead of the last layer",
+  "rationale": "word identity may be clearer in the middle layers (SUPERB-style probing)",
+  "val_macro_f1": 0.9778,
+  "val_logloss": 0.1079,
+  "val_acc": 0.9778,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 13.255,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"wave\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"backbone\": \"xlsr-300m\", \"freeze\": \"feature_encoder\", \"head_lr\": 0.001, \"weighted_layer_sum\": true, \"mask_time_prob\": 0.05, \"layerdrop\": 0.0}, \"train\": {\"epochs\": 10, \"batch_size\": 16, \"lr\": 3e-05, \"patience\": 10}, \"augment\": \"wave\", \"best_epoch\": 3, \"epochs_run\": 10, \"temperature\": 0.7239189007367344, \"n_params\": 315704229, \"n_trainable\": 311494053, \"layer_weights\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]}"
+}
