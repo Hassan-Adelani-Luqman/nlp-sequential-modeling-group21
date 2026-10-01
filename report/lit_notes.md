@@ -19,7 +19,7 @@ Reading assignments (Plan.md, Phase 2):
 | M1 | Davis & Mermelstein (1980) · Rabiner (1989) · Warden (2018) · Sokolova & Lapalme (2009) · Guo et al. (2017) · Dietterich (1998), plus supporting references for the metrics section |
 | M2 | Hochreiter & Schmidhuber (1997) · Graves et al. (2013) · de Andrade et al. (2018) · Bahdanau et al. (2015) · Park et al. (2019) |
 | M3 | Sainath & Parada (2015) · Choi et al. (2019) · Bai et al. (2018) · Menon et al. (2018) · Doumbouya et al. (2021) |
-| M4 | Vaswani et al. (2017) · Baevski et al. (2020) · Conneau et al. (2021) · Babu et al. (2022) · Pratap et al. (2023) · Berg et al. (2021) · Gong et al. (2021) · Ardila et al. (2020) · Joshi et al. (2020) |
+| M4 | Vaswani et al. (2017) · Baevski et al. (2020) · Conneau et al. (2021) · Babu et al. (2022) · Pratap et al. (2024) · Berg et al. (2021) · Gong et al. (2021) · Ardila et al. (2020) · Joshi et al. (2020) · Yang et al. (2021) |
 
 ---
 
@@ -183,4 +183,62 @@ These were checked against their abstracts. Each gets one line, with the key in 
   - It supports self-supervised pretraining on unlabelled audio as the route for low-resource languages, which is the idea behind A5 (XLS-R).
 
 ## M4: transformers and self-supervised speech models
-*To be written by M4.*
+### vaswani2017attention: the Transformer (Vaswani, 2017)
+- **Task / data:** machine translation (WMT14 English–German and English–French).
+- **Method:** an encoder–decoder built "solely on attention mechanisms, dispensing with recurrence and convolutions entirely". Every position attends to every other through scaled dot-product attention; order enters only through positional encodings.
+- **Key result:** 28.4 BLEU on English–German and 41.8 on English–French, after 3.5 days of training on eight GPUs.
+- **How it informs our project:** A5's encoder is a Transformer, so every frame can see the whole word at once. This is the third way of modelling order in our study, after recurrence (A3) and stacked convolutions (A4). Because order reaches the model only through position information, the temporal-order stress test asks whether A5 uses it at all.
+
+### baevski2020wav2vec: wav2vec 2.0 (Baevski, 2020)
+- **Task / data:** self-supervised pretraining on unlabelled speech: 960 hours of LibriSpeech for the Base model (95M parameters), 53.2K hours of LibriVox for the Large model (317M). Fine-tuning for English ASR.
+- **Method:** a convolutional feature encoder turns the raw waveform into latent frames. Spans of them are masked (starting points sampled with p = 0.065, 10 frames each), and a Transformer must identify the true quantised latent of each masked frame among distractors.
+- **Key result:** with only 10 minutes of labelled data (plus 53K unlabelled hours), 4.8 / 8.2 WER on LibriSpeech test-clean / test-other; with all 960 labelled hours, 1.8 / 3.3.
+- **How it informs our project:** learning from unlabelled speech and then fine-tuning on a little labelled data is exactly our situation, with about 245 clips per word. We fine-tune from the raw waveform, keep the convolutional feature encoder frozen as the paper does, and keep its span masking as A5's built-in augmentation. Its English-only Base model is A5's R2 comparison for the pretraining language.
+
+### conneau2021unsupervised: XLSR, cross-lingual speech pretraining (Conneau, 2021)
+- **Task / data:** multilingual ASR; pretraining on 56K hours in 53 languages (MLS, Common Voice, BABEL).
+- **Method:** wav2vec 2.0 pretraining on many languages at once, with a quantised latent space shared across languages.
+- **Key result:** compared with monolingual pretraining, a 72% relative reduction in phoneme error rate on Common Voice, and 16% in word error rate on BABEL.
+- **How it informs our project:** pretraining on many languages helps low-resource languages, because related sounds share representations. This motivates choosing a multilingual backbone for Swahili rather than an English-only one, and testing that choice directly in R2.
+
+### babu2022xlsr: XLS-R (Babu, 2022)
+- **Task / data:** 436K hours of public speech in 128 languages (VoxPopuli, MLS, Common Voice 6.1, VoxLingua107, BABEL). The extended arXiv version lists 91 hours of Swahili.
+- **Method:** wav2vec 2.0 pretraining at scale, with models of 300M, 1B and 2B parameters.
+- **Key result:** better results than earlier multilingual models on speech translation, ASR (BABEL, Common Voice, MLS, VoxPopuli) and language identification, with the largest gains for low-resource languages.
+- **How it informs our project:** A5 fine-tunes the 300M model, the only size that fits a Kaggle T4 comfortably. Swahili is in its pretraining data, but as only 91 of 436K hours (about 0.02%). A5 therefore tests transfer from mostly other languages, not a model that has already heard much Swahili.
+
+### pratap2024scaling: MMS, speech technology for 1,000+ languages (Pratap, 2024)
+- **Task / data:** pretraining on 491K hours in 1,406 languages; ASR and speech synthesis for 1,107 languages; language identification for 4,017.
+- **Method:** wav2vec 2.0 models of 300M and 1B parameters, pretrained and fine-tuned on this much broader language set.
+- **Key result:** a single model covers more than 1,100 languages for ASR, and more than halves the word error rate of Whisper on 54 languages of the FLEURS benchmark.
+- **How it informs our project:** MMS covers far more African languages than XLS-R. Its 300M model has the same size as ours, so it is the natural next backbone to try (future work). We kept XLS-R because it is the plan's model and a widely used fine-tuning baseline.
+
+### berg2021keyword: Keyword Transformer (Berg, 2021)
+- **Task / data:** keyword spotting on Google Speech Commands (12- and 35-word tasks, over 100,000 recordings).
+- **Method:** a Transformer over spectrogram frames, trained from scratch "without any pre-training or additional data". According to its official repository, it also uses hard distillation from a recurrent attention model.
+- **Key result:** 98.6% and 97.7% accuracy on the 12- and 35-word tasks, matching the state of the art at the time.
+- **How it informs our project:** self-attention works well for keyword spotting, but here it was trained on more than 30 times our data, with a teacher model. With 2,940 training clips, fine-tuning a pretrained Transformer is the realistic route. The plan listed a from-scratch Keyword Transformer as an optional stretch goal, to separate architecture from pretraining. We did not run it, so A5's results reflect both factors together.
+
+### gong2021ast: Audio Spectrogram Transformer (Gong, 2021)
+- **Task / data:** audio classification: AudioSet, ESC-50, and Speech Commands V2 (35 words).
+- **Method:** a convolution-free Transformer over spectrogram patches, initialised from an ImageNet-pretrained vision Transformer because "the Transformer needs more data to train".
+- **Key result:** 98.1% on Speech Commands V2. On AudioSet, ImageNet initialisation raised mAP from 0.148 to 0.347 on the balanced set.
+- **How it informs our project:** even with far more labelled audio than we have, the attention model depended on pretraining. This supports fine-tuning a pretrained Transformer (A5) rather than training one from scratch on 245 clips per word.
+
+### ardila2020common: Common Voice (Ardila, 2020)
+- **Task / data:** a crowdsourced, openly licensed speech corpus: 38 languages and about 2,500 hours by November 2019.
+- **Method:** volunteers record and validate read sentences through a web platform.
+- **Key result:** transfer learning from English improved the character error rate across 12 target languages (by 5.99 ± 5.48 points on average).
+- **How it informs our project:** Swahili was not yet in Common Voice, and it was still absent from release 6.1, which XLS-R used. Crowdsourced collection like the Zindi data is how such gaps get filled. It also brings the limitations of our data: read speech, no speaker metadata, and a single collection campaign.
+
+### joshi2020state: linguistic diversity in NLP (Joshi, 2020)
+- **Task / data:** a survey of language resources and research attention across about 2,500 languages.
+- **Method:** groups languages into six classes (0–5) by the unlabelled and labelled data available for them.
+- **Key result:** most of the world's languages are in class 0 ("The Left-Behinds"). Swahili is in class 2 ("The Hopefuls"): it has some labelled data, but far less than the top classes.
+- **How it informs our project:** this frames the task as genuinely low-resource. Swahili is widely spoken but has few labelled speech resources. That is why we test pretraining (A5) against models trained only on the 2,940 clips, and why data size is an explicit factor in Phase 7 (R4).
+
+### yang2021superb: the SUPERB benchmark (Yang, 2021)
+- **Task / data:** ten speech tasks, including keyword spotting on Speech Commands v1.0 (ten keywords plus silence and unknown).
+- **Method:** each pretrained model is frozen, and its hidden layers are combined by a weighted sum as the input to a small task-specific head, because "the last-layer representation is not always the best".
+- **Key result:** frozen models reach 96.2% (wav2vec 2.0 Base), 96.7% (wav2vec 2.0 Large) and 96.3% (HuBERT Base) keyword-spotting accuracy.
+- **How it informs our project:** two of A5's R2 ablations come from this protocol: a frozen encoder with only the head trained (R2-02), and a weighted sum of all Transformer layers (R2-06), whose learned weights show where word identity sits. The frozen-model accuracies set an expectation for our much smaller dataset.

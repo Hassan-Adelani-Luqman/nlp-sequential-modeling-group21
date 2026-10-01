@@ -2,7 +2,7 @@
 % Methodology (Section 4) - drafted for M2. The evaluation metrics subsection
 % is in evaluation_metrics.tex (M1). Citation keys match report/references.bib.
 % Needs in the preamble: \usepackage{booktabs, amsmath}.
-% TODO markers: [A5] M4 adds the model description (A3 and A4 are final).
+% All five approaches are final (A3-A5 configurations in configs/a{3,4,5}_best.yaml).
 % ---------------------------------------------------------------------------
 \section{Methodology}
 \label{sec:method}
@@ -90,7 +90,19 @@ selected MFCC-40 with $\Delta$ and $\Delta\Delta$ (120 channels) from a 2.0~s wi
 final model has 150K parameters (\texttt{configs/a4\_best.yaml}), 5.7 times fewer than the final A3.
 
 \paragraph{A5: fine-tuned self-supervised speech transformer}
-[A5: M4 to describe.]
+A5 fine-tunes a Transformer~\cite{vaswani2017attention} speech encoder that was pretrained without labels, following
+wav2vec~2.0~\cite{baevski2020wav2vec}. A convolutional feature encoder turns the raw 16~kHz waveform of the same
+centred window into one vector per 20~ms. A Transformer then contextualises these vectors, relating every frame to
+every other through self-attention. Order enters only through a convolutional positional embedding. The frames of
+the last layer are projected to 256 dimensions, mean-pooled over time, and classified.
+
+The default backbone is XLS-R~\cite{babu2022xlsr} with 300M parameters, pretrained on 436K hours in 128 languages,
+including 91 hours of Swahili. As is standard, the convolutional feature encoder stays frozen, and the Transformer
+is fine-tuned. The new, randomly initialised head has its own, higher learning rate. The only built-in
+regularisation is wav2vec~2.0's masking of latent frames: spans of 10 frames, started with probability 0.05. Both
+backbones in the R2 comparison use these settings, although they were pretrained with different
+defaults. The R2 search kept this setup and added waveform augmentation. The final model has 316M parameters, of
+which 311.5M are fine-tuned (\texttt{configs/a5\_best.yaml}): 370 times more than A3 and 2{,}100 times more than A4.
 
 \begin{table}[t]
   \centering
@@ -127,6 +139,18 @@ A3 and A4 share one training loop (\texttt{src/train\_torch.py}):
   \item \emph{Reproducibility:} every generator is seeded before the weights are initialised, so a configuration
         reproduces exactly.
 \end{itemize}
+A5 uses the same loop, instead of a separate fine-tuning framework, so that the loss, model selection and
+calibration are identical across the neural models. Four settings differ, as fine-tuning a pretrained model
+requires:
+\begin{itemize}
+  \item each waveform is normalised to zero mean and unit variance inside the model, instead of standardised with
+        training-split statistics;
+  \item the pretrained Transformer is fine-tuned at a peak learning rate of $3\times10^{-5}$, and the new head at
+        $10^{-3}$, with 10\% warm-up;
+  \item training runs for 10 epochs with batch 16 and keeps the best epoch, with no early stopping;
+  \item augmentation acts on the waveform: time shifts, speed perturbation (0.9--1.1$\times$, which unlike the
+        log-mel tempo change also shifts the pitch), and noise at 10--30~dB SNR.
+\end{itemize}
 Every model's probabilities are then temperature-scaled~\cite{guo2017calibration}, as described in
 Section~\ref{sec:metrics}.
 
@@ -138,8 +162,10 @@ configuration, and keeps the change only if the validation log loss improves. Th
 pooling (attention, last state, mean), recurrent direction, input features (log-mel or MFCC), window length
 (1.0/1.5/2.0~s), the way the word is located, the learning rate, and a convolutional front-end. A4 followed the
 same protocol over the factors that apply to it: augmentation, input features, window length, the way the word is
-located, depth, kernel width, network width and the learning rate. This makes every decision traceable to a logged
-comparison. The cost is that interactions between factors are only explored along the chosen path. Runs that
+located, depth, kernel width, network width and the learning rate. A5's search covered the pretraining language
+(XLS-R against the English-only wav2vec~2.0 Base~\cite{baevski2020wav2vec}), freezing the whole encoder,
+augmentation, the window length, a weighted sum of all layers instead of the last~\cite{yang2021superb}, and the
+learning rate. This makes every decision traceable to a logged comparison. The cost is that interactions between factors are only explored along the chosen path. Runs that
 failed, or that a later fix made stale, are kept outside the results table (\texttt{results/failed\_runs/} and
 \texttt{results/superseded\_runs/}).
 
@@ -153,6 +179,8 @@ effects, such as augmentation, pooling, direction and the way the word is locate
 A4 is much less stable across seeds: $0.135\pm0.023$ log loss and $96.8\pm0.3\%$ accuracy. One seed stopped
 early, at epoch 16 of 40, while the learning rate was still high. For A4, therefore, only the effect of the way the
 word is located (silence trim: $+0.157$ log loss) is clearly larger than seed noise. The other R2 differences
-(0.02--0.04) are read as directions, not established effects.
+(0.02--0.04) are read as directions, not established effects. A5 is the most stable model: $0.1015\pm0.0009$ log
+loss and $98.0\pm0.1\%$ accuracy. Pretrained weights leave the seed little to decide. So all of A5's R2 differences,
+except the tie between the 1.5 and 2.0~s windows, are larger than its seed noise.
 
 % TODO: add software references (PyTorch, scikit-learn, librosa, hmmlearn) after verifying them like the others.

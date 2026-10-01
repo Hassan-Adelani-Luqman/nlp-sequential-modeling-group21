@@ -25,9 +25,14 @@
   \item \emph{Early stopping tuned for one model.} A patience of five epochs suited A3, but cut one A4 seed off at
         epoch 16 of 40, while the learning rate was still high. That run explains most of A4's larger seed spread.
         We did not retune the patience after seeing the seed runs, to avoid selecting on validation once more.
-  \item \emph{Possible label noise.} Some validation clips are misclassified by A2, A3 and A4 alike, often with
-        high confidence and with the same wrong word. These may be mislabelled or unusual recordings. We did not
-        relabel anything, so such clips count as errors for every model.
+  \item \emph{Possible label noise.} About 12 validation clips defeat every model, including the pretrained A5. On
+        two of them, A2--A5 all give the same wrong word, and A3--A5 do so with 91--100\% confidence. These may be
+        mislabelled or unusual recordings. We did not relabel anything, so such clips count as errors for every
+        model.
+  \item \emph{Pretraining confounds.} The two A5 backbones differ in size (316M against 95M parameters) as well as
+        in pretraining language, and XLS-R's pretraining included only 91 hours of Swahili. A5's gains therefore
+        cannot be attributed to Swahili data or to the language of pretraining alone. A Transformer trained from
+        scratch, which would separate the architecture from the pretraining, was not run.
   \item \emph{A small test set.} With 630 test clips, accuracy is known to within about $\pm$1--3 points, and
         each sound-alike pair has only about 105 clips.
 \end{enumerate}
@@ -59,7 +64,10 @@ here recognise only 12 isolated words, which limits that risk.
 \paragraph{Environmental cost}
 The neural models were trained on one Kaggle Tesla~T4; one A4 rerun and the classical baselines ran on a laptop
 CPU. A full tuning round for A3 (13 runs) took about 10 minutes of GPU time. All of A4's runs, including the failed
-and superseded ones, took under 30 minutes. The compute and energy cost of the study is small.
+and superseded ones, took under 30 minutes. The pretrained A5 dominates the budget: its 13 runs, including one
+rerun after a bug fix, took about 2.8 hours. That is about 13 minutes per run, against about 1 minute for A3 or
+A4. Even so, the compute and energy cost of the study is small, and we fine-tuned the smallest XLS-R model rather
+than the 1B or 2B versions.
 
 \paragraph{Use of AI assistance}
 AI tools assisted with code, analysis and drafting. Every contribution is disclosed, with how it was verified, in

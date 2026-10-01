@@ -1,7 +1,7 @@
 % ---------------------------------------------------------------------------
 % Related Work (Section 2) - drafted for M2 (keyword spotting, recurrence,
-% attention, augmentation). M4 adds the self-supervised speech models and
-% African/low-resource speech subsection. Citation keys match report/references.bib.
+% attention, augmentation), M3 (convolution vs recurrence) and M4 (self-supervised
+% speech models, African/low-resource speech). Citation keys match report/references.bib.
 % ---------------------------------------------------------------------------
 \section{Related Work}
 \label{sec:related}
@@ -47,11 +47,33 @@ clips per word, and competition rules that forbid external data such as noise co
 augmentation is therefore the only augmentation available to us, and its value is tested directly in round R2.
 
 \subsection{Self-supervised speech models and African languages}
-[M4: wav2vec~2.0 / XLS-R / MMS pretraining and fine-tuning; Common Voice; keyword spotting and speech technology
-for African and other low-resource languages; the gap this study addresses.]
+Transformers relate every position of a sequence to every other through attention, without recurrence or
+convolution~\cite{vaswani2017attention}. For keyword spotting, a Transformer trained from scratch matched the state
+of the art on Speech Commands, with 98.6\% and 97.7\% accuracy on the 12- and 35-word tasks~\cite{berg2021keyword}.
+The Audio Spectrogram Transformer reached 98.1\%~\cite{gong2021ast}. Both used far more labelled audio than we
+have, and the second also depended on ImageNet pretraining, because ``the Transformer needs more data to
+train''~\cite{gong2021ast}.
+
+Self-supervised pretraining removes most of the need for labels. wav2vec~2.0 learns from unlabelled audio by
+masking spans of latent speech frames and identifying the true frames from context. Fine-tuned on only 10 minutes
+of transcribed speech, it reached 4.8\% and 8.2\% word error rate on the two LibriSpeech test sets~\cite{baevski2020wav2vec}.
+Pretraining on many languages at once helps low-resource languages further~\cite{conneau2021unsupervised}. XLS-R
+scaled this to 436K hours in 128 languages~\cite{babu2022xlsr}, and MMS to 1{,}406
+languages~\cite{pratap2024scaling}. The SUPERB benchmark showed that such models reach about 96\% keyword-spotting
+accuracy on English Speech Commands even when frozen, and that a weighted sum of their hidden layers is often a
+better input than the last layer alone~\cite{yang2021superb}.
+
+For African languages, labelled speech remains scarce. Swahili belongs to the ``Hopefuls'', a class of languages
+with only limited labelled resources~\cite{joshi2020state}. It was absent from the first releases of the
+crowdsourced Common Voice corpus~\cite{ardila2020common}, and it makes up only 91 of XLS-R's 436K pretraining
+hours~\cite{babu2022xlsr}. Speech technology for such languages has therefore turned to keyword spotting without
+full speech recognition, for example to monitor radio for humanitarian programmes~\cite{menon2018fast}, and to
+self-supervised pretraining on unlabelled radio archives~\cite{doumbouya2021using}. Our study adds a controlled
+comparison for an African language: how much a pretrained Transformer adds over classical and from-scratch sequence
+models, under the same data, split and metrics.
 
 \subsection{How the literature shaped our study}
-Three lessons from this work shaped the design:
+Four lessons from this work shaped the design:
 \begin{enumerate}
   \item Keyword spotting has been solved with very different ways of modelling time: order-free features,
         Markov states, convolution, recurrence and self-attention. We therefore compare one representative of
@@ -61,4 +83,7 @@ Three lessons from this work shaped the design:
         \textit{sita}) should separate order-aware from order-free models.
   \item Augmentation such as SpecAugment is most useful when data is scarce~\cite{park2019specaugment}. With 245
         clips per word, we treat it as a first-class experimental factor rather than a fixed default.
+  \item Pretrained speech Transformers need very little labelled data~\cite{baevski2020wav2vec}, but their
+        pretraining data contain little Swahili~\cite{babu2022xlsr}. A5 therefore tests transfer from other
+        languages, and its R2 search compares multilingual with English-only pretraining.
 \end{enumerate}
