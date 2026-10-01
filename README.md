@@ -20,46 +20,6 @@ its sounds. *tisa* (nine) and *sita* (six) contain the same sounds in a differen
 | A3 | BiLSTM + attention on log-mel frames | yes (recurrent) | M2 |
 | A4 | TC-ResNet (1D convolutions over time) | yes (convolutional) | M3 |
 | A5 | Fine-tuned XLS-R-300M on raw audio (vs wav2vec2-base) | yes (self-attention, pretrained) | M4 |
-
-The full project plan is in [Plan.md](Plan.md).
-
-## Status
-- [x] Phase 1: `src/paths.py`, `src/data.py`, `src/features.py`, `src/utils.py`, `src/evaluate.py`, tests
-- [x] Frozen split committed in `data/splits/` (hash `b74d294f…`)
-- [x] Phase 4 + R2 for the classical baselines ([notebooks/02_baselines.ipynb](notebooks/02_baselines.ipynb), 21 logged runs)
-  - A1 (MFCC stats + logistic regression): **77.9%** val accuracy, log loss 0.725
-  - A2 (12-state × 8-Gaussian GMM-HMM): **95.2%** val accuracy, log loss 0.180
-  - *tisa/sita* confusion: 6.7% (A1) vs 0% (A2)
-- [x] A3 rounds R1 + R2 ([notebooks/03_bilstm.ipynb](notebooks/03_bilstm.ipynb), 13 logged runs on a Kaggle T4)
-  - Conv1d + BiLSTM + attention on MFCC-40: **97.0%** val accuracy, log loss 0.134
-  - 0% *tisa/sita*, *nne/nane* and *tatu/tano* confusion
-  - Seed check (3 seeds): val log loss 0.137 ± 0.004, accuracy 96.9% ± 0.2; checkpoints saved for the Phase 7 test run
-  - Interpretability: attention concentrates on the word (median 100% of the weight); a streaming, forward-only A3 reaches 80% accuracy 500 ms into the word
-- [x] Phase 3 EDA ([notebooks/01_eda.ipynb](notebooks/01_eda.ipynb)): durations, loudness and SNR, spectra, sound-alike pairs, t-SNE, pitch. Every finding ends in a modelling decision.
-- [x] A4 rounds R1 + R2 ([notebooks/04_tcresnet.ipynb](notebooks/04_tcresnet.ipynb), 12 logged runs, mostly on a Kaggle T4)
-  - TC-ResNet8-1.5 on MFCC-40 from a 2.0 s window: **97.1%** val accuracy, log loss 0.119, with 150K parameters (A3: 855K)
-  - Seed check (3 seeds): val log loss 0.135 ± 0.023, accuracy 96.8% ± 0.3. A4 ties with A3 on average, but is less stable across seeds.
-  - A failed run (augmentation fill bug) and the runs it made stale are kept in [results/failed_runs/](results/failed_runs/) and [results/superseded_runs/](results/superseded_runs/)
-- [x] A5 rounds R1 + R2 ([notebooks/05_xlsr.ipynb](notebooks/05_xlsr.ipynb), 9 logged runs on a Kaggle T4)
-  - XLS-R-300M fine-tuned on the raw waveform, with waveform augmentation: **97.9%** val accuracy, log loss 0.101, the best of the five approaches
-  - Seed check (3 seeds): val log loss 0.1015 ± 0.0009, accuracy 98.0% ± 0.1, the most stable model. Checkpoints saved for the Phase 7 test run (1.2 GB each, not committed)
-  - English-only wav2vec2-base comes close (0.120). A frozen encoder with only the head trained fails (27%). Every A5 error is also an A3 error.
-- [x] Temporal-order stress test ([notebooks/07_order_stress_test.ipynb](notebooks/07_order_stress_test.ipynb)): on reversed audio, A2–A5 fall from 95–98% to 21–39% accuracy, while an order-free control is unchanged. Shuffled 100 ms chunks hardly affect A5 (89%).
-- [x] Report drafts: [evaluation metrics](report/sections/evaluation_metrics.tex) (M1), [methodology](report/sections/methodology.tex) (M2–M4), [related work](report/sections/related_work.tex) (M2–M4), [dataset & EDA](report/sections/dataset_eda.tex) (M3), [limitations & responsible AI](report/sections/limitations_responsible_ai.tex) (M3), [literature notes](report/lit_notes.md) (M1–M4), [verified bibliography](report/references.bib)
-- [x] Phase 7 final evaluation on the test split ([notebooks/06_results_error_analysis.ipynb](notebooks/06_results_error_analysis.ipynb), scored once)
-  - Test log loss / accuracy: A5 **0.093 / 98.1%**, A4 0.125 / 96.3%, A3 0.170 / 96.0%, A2 0.186 / 96.5%, A1 0.700 / 79.5% (mean of 3 seeds for A3–A5)
-  - A5 is significantly more accurate than every other model (McNemar, Holm-corrected p ≤ 0.039). Its log-loss lead over A4 is not significant. A3 and A4 tie on accuracy, but A4 has the lower log loss.
-  - Data-size curve (R4): with 24 clips per word, A5 already reaches 96.5%. Without pretraining, the HMM is the most data-efficient model.
-  - Efficiency: A5 takes 871 ms per clip on one CPU thread and 1.26 GB, against 9 ms and 0.6 MB for A4
-  - Results table for the report: [results/tables/test_results.tex](results/tables/test_results.tex)
-- [x] Phase 8 error analysis ([notebooks/06_results_error_analysis.ipynb](notebooks/06_results_error_analysis.ipynb), Part 4; [report section](report/sections/error_analysis.tex))
-  - Spelling similarity does not predict confusions. The anagram pair *sita/tisa* drops from 8.6% (A1) to 1.0–1.9% for the order-aware models.
-  - The same 10 test clips defeat A2–A5. Compared with all clips, they are far more often very quiet (38% vs 4%) or contain several utterances (52% vs 25%), and 3 are label-error candidates.
-  - Noise is the main remaining risk: 8–13% errors below 30 dB SNR, against at most 1.5% above
-  - Label check without a listener: confident learning plus an external Swahili recogniser (MMS). One likely label error, three words said in English, two crop failures, and the rest mostly other speech or none. Removing the clear cases changes test accuracy by 0.3 points. Optional human check: [results/metrics/listening_sheet.csv](results/metrics/listening_sheet.csv)
-- [ ] Report Results & Discussion (M4); Phases 9–12
-- [ ] Report, demo video, contribution tracker (links added on submission)
-
 ## Quick start
 
 ### Kaggle (main compute)
@@ -85,6 +45,14 @@ pip install -r requirements.txt
 # put Train.csv, Test.csv, SampleSubmission.csv and Swahili_words/ in data/raw/
 python -m src.data                                  # verify the frozen split
 pytest -q                                           # smoke tests
+```
+
+### Building the report
+The report reads its figures and the main results table straight from `results/`, so it always shows the logged
+numbers. Either upload `report/` and `results/` to Overleaf (pdfLaTeX, main file `report/main.tex`), or build
+locally with [Tectonic](https://tectonic-typesetting.github.io/):
+```bash
+cd report && tectonic main.tex      # writes report/main.pdf
 ```
 
 ## Using the shared code
@@ -164,9 +132,9 @@ report/         report PDF, lit notes, AI-use log
 ## Team
 | Member | Role |
 |---|---|
-| M1 | Data pipeline, features, evaluation, baselines A1/A2, README |
-| M2 | Augmentation, PyTorch training loop, BiLSTM A3 |
-| M3 | EDA, TC-ResNet A4, error analysis |
-| M4 | HF training, XLS-R A5, results |
+| M1 · Hassan Adelani Luqman | Data pipeline, features, evaluation, baselines A1/A2, README |
+| M2 · Haguma Bianca | Augmentation, PyTorch training loop, BiLSTM A3 |
+| M3 · Emmanuel Mukasa | EDA, TC-ResNet A4, error analysis |
+| M4 · Emmanuel Nsabagasani | HF training, XLS-R A5, results |
 
-Links (added on submission): report · demo video · contribution tracker.
+Links: [report](report/main.pdf) · [demo video](https://youtu.be/Gv1f1HYyZ18) · [contribution tracker](https://docs.google.com/spreadsheets/d/1lV5C-49tpxNkssPY9lWKOiY321QZCv3a-YPMJONuf9E/edit?usp=sharing).
