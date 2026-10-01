@@ -1,6 +1,6 @@
 % ---------------------------------------------------------------------------
 % Limitations and Responsible AI (part of Section 6) - drafted for M3.
-% The error-analysis subsection (Phase 8) is added after the Phase 7 test run.
+% Follows error_analysis.tex, which opens Section 6 with the Phase 8 analysis.
 % Citation keys match report/references.bib.
 % ---------------------------------------------------------------------------
 \subsection{Limitations}
@@ -25,10 +25,11 @@
   \item \emph{Early stopping tuned for one model.} A patience of five epochs suited A3, but cut one A4 seed off at
         epoch 16 of 40, while the learning rate was still high. That run explains most of A4's larger seed spread.
         We did not retune the patience after seeing the seed runs, to avoid selecting on validation once more.
-  \item \emph{Possible label noise.} About 12 validation clips defeat every model, including the pretrained A5. On
-        two of them, A2--A5 all give the same wrong word, and A3--A5 do so with 91--100\% confidence. These may be
-        mislabelled or unusual recordings. We did not relabel anything, so such clips count as errors for every
-        model.
+  \item \emph{Possible label noise.} 10 test and 11 validation clips defeat every order-aware model, including the
+        pretrained A5. On three of them, A3--A5 agree on the same wrong word with at least 80\% confidence
+        (Section~\ref{sec:errors}). These may be mislabelled or unusual recordings. Our triage was automatic and
+        visual, because a listening check of the 21 clips is still pending. We did not relabel anything, so these
+        clips count as errors for every model.
   \item \emph{Pretraining confounds.} The two A5 backbones differ in size (316M against 95M parameters) as well as
         in pretraining language, and XLS-R's pretraining included only 91 hours of Swahili. A5's gains therefore
         cannot be attributed to Swahili data or to the language of pretraining alone. A Transformer trained from
@@ -48,6 +49,11 @@ The data carries no speaker metadata (gender, age, dialect or region), so we cou
 differ between groups. The wide pitch range suggests a mix of voices, but that is no substitute for a fairness
 audit. Speakers of other Swahili varieties, children and older adults may be served worse by any model trained
 only on these recordings.
+
+What we could measure is recording conditions, and they matter. In noisy recordings (SNR below 30~dB), the
+order-aware models make 8--13\% errors, against at most 1.5\% in cleaner ones (Section~\ref{sec:errors}). Users
+with cheap phones or in noisy places, often the same users that spoken interfaces aim to include, would therefore
+see several times more errors than the headline accuracy suggests.
 
 \paragraph{Consequences of errors}
 The intended applications, such as spoken digits for mobile money, helplines or menu navigation for users with

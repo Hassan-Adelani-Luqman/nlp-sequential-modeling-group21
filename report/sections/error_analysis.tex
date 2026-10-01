@@ -1,0 +1,115 @@
+% ---------------------------------------------------------------------------
+% Error analysis (Section 6, first part) - drafted for M3 (Phase 8).
+% Numbers come from notebooks/06_results_error_analysis.ipynb (Part 4) and
+% notebook 07 (order stress test); figures from results/figures/.
+% Followed by limitations_responsible_ai.tex. Citation keys match report/references.bib.
+% ---------------------------------------------------------------------------
+\section{Error Analysis and Limitations}
+\label{sec:errors}
+
+\subsection{Error analysis}
+The analysis uses the test split and the final seed-42 runs, unless stated otherwise. Confusion rates for A3--A5 are
+pooled over their three seeds.
+
+\paragraph{The order-aware models use the order of the sounds}
+The anagram pair \textit{sita}/\textit{tisa} is the order-free A1's most-confused pair: 8.6\% of the pair's test
+clips are heard as the other word. For A2--A5 the rate falls to 1.0--1.9\%. Beyond that pair, spelling similarity
+does not predict confusion. Across all 66 word pairs, the rank correlation between confusion rate and edit distance
+lies between $-0.14$ and $+0.04$ for every model (all $p\geq0.25$). The closest pair, \textit{nane}/\textit{nne}
+(edit distance 1), is confused only by A1.
+
+The temporal-order stress test (Fig.~\ref{fig:stress}) checks the use of order directly. Each validation clip is
+played unchanged, reversed, or cut into 100~ms chunks in random order, so every version contains the same sounds.
+\begin{itemize}
+  \item \emph{Reversal:} accuracy falls from 95--98\% to 21--39\% for A2--A5. On reversed audio, \textit{tisa} is
+        mostly heard as \textit{sita} and vice versa: in 83\% of the pair's clips for the HMM and 62\% for A5.
+  \item \emph{Control:} a logistic regression on static MFCC statistics alone is exactly unchanged by reversal
+        (57.5\%).
+  \item \emph{A1:} its delta features encode about 90~ms of local change, so it loses 28 points. It is order-free
+        only beyond that scale.
+  \item \emph{Shuffling:} A5 keeps 88.9\% accuracy when the chunks are shuffled, while A2--A4 fall to 32--61\%. So
+        the pretrained model relies on the order \emph{within} chunks of about 100~ms (the transitions between
+        sounds), and hardly on how those pieces are arranged. For the MFCC-based models the comparison is less
+        clean, because the cuts also distort their delta features.
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/order_stress_test.png}
+  \caption{Validation accuracy when each clip's word is played unchanged, reversed, or as shuffled 100~ms chunks.
+  The control is A1 refitted on static MFCC statistics only.}
+  \label{fig:stress}
+\end{figure}
+
+\paragraph{The models fail on the same clips}
+493 of the 630 test clips (78\%) are recognised by all five models, and 102 defeat only A1. Errors that belong to a
+single order-aware architecture are rare: A5 makes none that A2--A4 all avoid, A4 one, A2 seven and A3 eight. The
+same 10 test clips defeat A2, A3, A4 and A5 alike, and they make up 10 of A5's 12 errors.
+
+Pooling those clips with the 11 validation clips that defeat A2--A5, we compared their recordings with all 1,260
+validation and test clips (Table~\ref{tab:hard}).
+\begin{itemize}
+  \item \emph{Recording problems:} the hard clips are far more often very quiet, contain several separate
+        utterances, or have speech at the edge of the 1.5~s window, which suggests the crop chose the wrong stretch.
+  \item \emph{Spectrograms:} in about three of the ten hard test clips, the window shows no clear word at all, only
+        clicks or near-silence.
+  \item \emph{Label-error candidates:} in three clips, A3--A5 agree on the same wrong word with at least 80\%
+        confidence. One is a test clip labelled \textit{sita} that all four order-aware models hear as
+        \textit{tisa}, with 99--100\% confidence.
+\end{itemize}
+We did not relabel anything. The 21 clips are listed in \texttt{results/metrics/listening\_sheet.csv} for a
+listening check.
+
+\begin{table}[t]
+  \centering
+  \caption{Recording flags among the 21 clips that every order-aware model misclassifies, against all 1,260
+  validation and test clips.}
+  \label{tab:hard}
+  \small
+  \begin{tabular}{@{}lrr@{}}
+    \toprule
+    Flag & Hard clips & All clips \\
+    \midrule
+    Very quiet ($<-45$~dBFS) & 38\% & 4\% \\
+    Several utterances & 52\% & 25\% \\
+    Speech at the window edge & 43\% & 16\% \\
+    Low SNR ($<15$~dB) & 14\% & 3\% \\
+    Very short ($<0.3$~s of speech) & 10\% & 1\% \\
+    Clipped & 0\% & 4\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Noise is the main remaining risk}
+Error rates rise sharply in noisy recordings (Fig.~\ref{fig:strata}).
+\begin{itemize}
+  \item \emph{SNR:} below 30~dB (135 test clips), A2--A5 misclassify 8--13\% of clips, against at most 1.5\% above
+        30~dB. A5 is the most robust (8.1\%). It is also the only model trained with noise injection, but this
+        study cannot separate that from its pretraining.
+  \item \emph{Loudness:} quiet recordings are harder for A2--A4 (4.7--8.3\% errors) than for A5 (2.4\%).
+  \item \emph{Duration:} words estimated to last over 0.7~s show higher error rates, but mostly because noise
+        inflates the estimate. Duration and SNR are correlated ($\rho=-0.42$), and among long clips with good SNR,
+        A5 makes one error in 50.
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/p8_error_strata.png}
+  \caption{Test error rate of the order-aware models by estimated word duration, SNR and loudness, with 95\%
+  Wilson intervals.}
+  \label{fig:strata}
+\end{figure}
+
+\paragraph{What the models attend to}
+\textit{nne} and \textit{nane} differ in the first half of the word, where \textit{nane} has the vowel /a/.
+\begin{itemize}
+  \item \emph{A3:} its attention peaks about a quarter of the way into both words. The profiles of the two words
+        are indistinguishable ($p=0.79$). A bidirectional LSTM summarises the whole word in every state, so the
+        attention shows where the model reads its summary, not which sounds decide.
+  \item \emph{A4:} its class-activation evidence is spread over the whole word. For \textit{nane} it shifts slightly
+        towards the start (56\% against 52\% in the first half, $p=0.014$), as expected if the vowel matters.
+  \item \emph{Early recognition:} a forward-only A3 that sees only the beginning of the word reaches 24\% accuracy
+        100~ms after the onset, 80\% at 500~ms and 88\% at 800~ms, against 93.7\% for the whole window (validation).
+        The evidence separating the confusable words arrives with their second syllable.
+\end{itemize}
+Perturbation tests such as the stress test give firmer evidence about the use of order than these maps do.
