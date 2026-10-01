@@ -1,0 +1,20 @@
+{
+  "exp_id": "A5-R2-02",
+  "date": "2026-09-30 20:22",
+  "member": "M4",
+  "approach": "A5",
+  "round": "R2",
+  "config_file": "notebooks/05_xlsr.ipynb",
+  "seed": 42,
+  "change_vs_previous": "frozen encoder: train only the classification head",
+  "rationale": "what does fine-tuning the Transformer add?",
+  "val_macro_f1": 0.233,
+  "val_logloss": 1.9602,
+  "val_acc": 0.2714,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 4.7556,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"wave\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"backbone\": \"xlsr-300m\", \"freeze\": \"encoder\", \"head_lr\": 0.001, \"weighted_layer_sum\": false, \"mask_time_prob\": 0.05, \"layerdrop\": 0.0}, \"train\": {\"epochs\": 10, \"batch_size\": 16, \"lr\": 3e-05, \"patience\": 10}, \"augment\": \"none\", \"best_epoch\": 8, \"epochs_run\": 10, \"temperature\": 0.8347302196324445, \"n_params\": 315704204, \"n_trainable\": 265484}"
+}

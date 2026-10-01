@@ -1,0 +1,20 @@
+{
+  "exp_id": "A5-R2-07",
+  "date": "2026-09-30 21:30",
+  "member": "M4",
+  "approach": "A5",
+  "round": "R2",
+  "config_file": "notebooks/05_xlsr.ipynb",
+  "seed": 42,
+  "change_vs_previous": "encoder learning rate 1e-5 instead of 3e-5",
+  "rationale": "learning-rate sensitivity (lower)",
+  "val_macro_f1": 0.9764,
+  "val_logloss": 0.1175,
+  "val_acc": 0.9762,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 13.0511,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"wave\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"backbone\": \"xlsr-300m\", \"freeze\": \"feature_encoder\", \"head_lr\": 0.001, \"weighted_layer_sum\": false, \"mask_time_prob\": 0.05, \"layerdrop\": 0.0}, \"train\": {\"epochs\": 10, \"batch_size\": 16, \"lr\": 1e-05, \"patience\": 10}, \"augment\": \"wave\", \"best_epoch\": 9, \"epochs_run\": 10, \"temperature\": 0.7487787500016929, \"n_params\": 315704204, \"n_trainable\": 311494028}"
+}

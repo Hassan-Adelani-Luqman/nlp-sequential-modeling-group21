@@ -1,0 +1,20 @@
+{
+  "exp_id": "A5-R2-01",
+  "date": "2026-09-30 20:18",
+  "member": "M4",
+  "approach": "A5",
+  "round": "R2",
+  "config_file": "notebooks/05_xlsr.ipynb",
+  "seed": 42,
+  "change_vs_previous": "wav2vec2-base (95M, English-only pretraining) instead of XLS-R-300M (128 languages incl. Swahili)",
+  "rationale": "does multilingual pretraining transfer better to Swahili?",
+  "val_macro_f1": 0.9747,
+  "val_logloss": 0.12,
+  "val_acc": 0.9746,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 5.6967,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"wave\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"backbone\": \"wav2vec2-base\", \"freeze\": \"feature_encoder\", \"head_lr\": 0.001, \"weighted_layer_sum\": false, \"mask_time_prob\": 0.05, \"layerdrop\": 0.0}, \"train\": {\"epochs\": 10, \"batch_size\": 16, \"lr\": 3e-05, \"patience\": 10}, \"augment\": \"none\", \"best_epoch\": 3, \"epochs_run\": 10, \"temperature\": 0.6822759947889919, \"n_params\": 94571660, \"n_trainable\": 90371212}"
+}

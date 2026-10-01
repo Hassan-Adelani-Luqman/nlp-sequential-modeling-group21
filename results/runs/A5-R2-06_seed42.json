@@ -1,0 +1,20 @@
+{
+  "exp_id": "A5-R2-06",
+  "date": "2026-09-30 23:23",
+  "member": "M4",
+  "approach": "A5",
+  "round": "R2",
+  "config_file": "notebooks/05_xlsr.ipynb",
+  "seed": 42,
+  "change_vs_previous": "weighted sum of all Transformer layers instead of the last layer",
+  "rationale": "word identity may be clearer in the middle layers (SUPERB-style probing)",
+  "val_macro_f1": 0.9778,
+  "val_logloss": 0.1103,
+  "val_acc": 0.9778,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 13.2367,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"wave\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"backbone\": \"xlsr-300m\", \"freeze\": \"feature_encoder\", \"head_lr\": 0.001, \"weighted_layer_sum\": true, \"mask_time_prob\": 0.05, \"layerdrop\": 0.0}, \"train\": {\"epochs\": 10, \"batch_size\": 16, \"lr\": 3e-05, \"patience\": 10}, \"augment\": \"wave\", \"best_epoch\": 3, \"epochs_run\": 10, \"temperature\": 0.6929643192532795, \"n_params\": 315704229, \"n_trainable\": 311494053, \"layer_weights\": [0.04213525727391243, 0.0411481149494648, 0.04130958765745163, 0.041095055639743805, 0.04082861915230751, 0.04034605994820595, 0.04057040065526962, 0.04056013002991676, 0.04046611487865448, 0.04026789963245392, 0.03955059498548508, 0.03900303691625595, 0.03944390267133713, 0.03823790326714516, 0.03967295214533806, 0.03977664187550545, 0.04152790084481239, 0.04146672040224075, 0.04102163389325142, 0.03933919221162796, 0.03897155448794365, 0.03700639307498932, 0.03596385940909386, 0.03572504594922066, 0.044565457850694656]}"
+}

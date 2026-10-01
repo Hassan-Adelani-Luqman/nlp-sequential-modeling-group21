@@ -1,0 +1,20 @@
+{
+  "exp_id": "A5-R1-01",
+  "date": "2026-09-30 20:12",
+  "member": "M4",
+  "approach": "A5",
+  "round": "R1",
+  "config_file": "notebooks/05_xlsr.ipynb",
+  "seed": 42,
+  "change_vs_previous": "first A5 run: XLS-R-300M fine-tuned on the raw waveform (feature encoder frozen), no augmentation",
+  "rationale": "default configuration from Plan.md Phase 5",
+  "val_macro_f1": 0.9778,
+  "val_logloss": 0.1109,
+  "val_acc": 0.9778,
+  "test_macro_f1": "",
+  "test_logloss": "",
+  "test_acc": "",
+  "train_time_min": 13.7119,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"wave\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"backbone\": \"xlsr-300m\", \"freeze\": \"feature_encoder\", \"head_lr\": 0.001, \"weighted_layer_sum\": false, \"mask_time_prob\": 0.05, \"layerdrop\": 0.0}, \"train\": {\"epochs\": 10, \"batch_size\": 16, \"lr\": 3e-05, \"patience\": 10}, \"augment\": \"none\", \"best_epoch\": 5, \"epochs_run\": 10, \"temperature\": 0.7309507763943562, \"n_params\": 315704204, \"n_trainable\": 311494028}"
+}
