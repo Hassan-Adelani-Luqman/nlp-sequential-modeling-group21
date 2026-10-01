@@ -56,7 +56,7 @@ The full project plan is in [Plan.md](Plan.md).
   - Spelling similarity does not predict confusions. The anagram pair *sita/tisa* drops from 8.6% (A1) to 1.0–1.9% for the order-aware models.
   - The same 10 test clips defeat A2–A5. Compared with all clips, they are far more often very quiet (38% vs 4%) or contain several utterances (52% vs 25%), and 3 are label-error candidates.
   - Noise is the main remaining risk: 8–13% errors below 30 dB SNR, against at most 1.5% above
-  - Listening check of the 21 hard clips still to do: [results/metrics/listening_sheet.csv](results/metrics/listening_sheet.csv) (M3)
+  - Label check without a listener: confident learning plus an external Swahili recogniser (MMS). One likely label error, three words said in English, two crop failures, and the rest mostly other speech or none. Removing the clear cases changes test accuracy by 0.3 points. Optional human check: [results/metrics/listening_sheet.csv](results/metrics/listening_sheet.csv)
 - [ ] Report Results & Discussion (M4); Phases 9–12
 - [ ] Report, demo video, contribution tracker (links added on submission)
 
