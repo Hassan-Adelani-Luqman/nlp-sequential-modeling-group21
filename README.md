@@ -52,7 +52,12 @@ The full project plan is in [Plan.md](Plan.md).
   - Data-size curve (R4): with 24 clips per word, A5 already reaches 96.5%. Without pretraining, the HMM is the most data-efficient model.
   - Efficiency: A5 takes 871 ms per clip on one CPU thread and 1.26 GB, against 9 ms and 0.6 MB for A4
   - Results table for the report: [results/tables/test_results.tex](results/tables/test_results.tex)
-- [ ] Phase 8 error analysis (M3); report Results & Discussion (M4)
+- [x] Phase 8 error analysis ([notebooks/06_results_error_analysis.ipynb](notebooks/06_results_error_analysis.ipynb), Part 4; [report section](report/sections/error_analysis.tex))
+  - Spelling similarity does not predict confusions. The anagram pair *sita/tisa* drops from 8.6% (A1) to 1.0–1.9% for the order-aware models.
+  - The same 10 test clips defeat A2–A5. Compared with all clips, they are far more often very quiet (38% vs 4%) or contain several utterances (52% vs 25%), and 3 are label-error candidates.
+  - Noise is the main remaining risk: 8–13% errors below 30 dB SNR, against at most 1.5% above
+  - Listening check of the 21 hard clips still to do: [results/metrics/listening_sheet.csv](results/metrics/listening_sheet.csv) (M3)
+- [ ] Report Results & Discussion (M4); Phases 9–12
 - [ ] Report, demo video, contribution tracker (links added on submission)
 
 ## Quick start
