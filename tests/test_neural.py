@@ -122,6 +122,84 @@ def test_tcresnet_learns_temporal_order():
     assert (r.val_logits.argmax(1) == y[60:]).mean() >= 0.95
 
 
+# ------------------------------------------------------------------ A5: wav2vec 2.0 / XLS-R on raw waveforms
+def fake_wave(seed=0):
+    """1.5 s window with a 1 s 'word' (noise burst) in the middle, like a centred energy-window crop."""
+    wav = np.zeros(24000, np.float32)
+    wav[4000:20000] = np.random.default_rng(seed).normal(0, 0.3, 16000)
+    return wav
+
+
+def test_wave_augment_keeps_length_is_seeded_and_hits_the_snr():
+    from src.augment import WaveAugment
+
+    wav = fake_wave()
+    out = WaveAugment(seed=1)(wav)
+    assert out.shape == wav.shape and out.dtype == np.float32
+    assert np.array_equal(WaveAugment(seed=3)(wav), WaveAugment(seed=3)(wav))   # seeded -> reproducible
+    slow = WaveAugment(speed=(0.9, 0.9), p_speed=1.0, shift_ms=0, noise_snr_db=None)(wav)
+    assert (slow != 0).sum() > (wav != 0).sum()                                 # slower speech: the word lasts longer
+    shifted = WaveAugment(speed=None, noise_snr_db=None, shift_ms=100, seed=2)(wav)
+    assert np.abs(shifted).sum() > 0 and not np.array_equal(shifted, wav)     # shifted with silence, not wrapped
+    noisy = WaveAugment(speed=None, shift_ms=0, noise_snr_db=(20, 20), p_noise=1.0, seed=0)(wav)
+    # The reference is the louder half of the frames, which here all belong to the word.
+    snr_vs_word = 10 * np.log10((wav[4000:20000] ** 2).mean() / ((noisy - wav) ** 2).mean())
+    assert 19 < snr_vs_word < 21
+
+
+@pytest.fixture
+def tiny_wav2vec2():
+    pytest.importorskip("transformers")
+    from src.models.wav2vec2 import tiny_config
+
+    return tiny_config()
+
+
+def test_wav2vec2_classifier_freezing_groups_and_normalisation(tiny_wav2vec2):
+    from src.models.wav2vec2 import Wav2Vec2Classifier
+
+    model = Wav2Vec2Classifier(config=tiny_wav2vec2).eval()
+    x = torch.randn(3, 16000)
+    with torch.no_grad():
+        assert model(x).shape == (3, 12)
+        assert torch.allclose(model(x), model(4 * x + 1), atol=1e-4)            # each clip is normalised in the model
+    assert not any(p.requires_grad for p in model.net.wav2vec2.feature_extractor.parameters())
+    assert [g["lr"] for g in model.optimizer_groups(3e-5)] == [3e-5, 1e-3]     # encoder, then the new head
+    probe = Wav2Vec2Classifier(config=tiny_wav2vec2, freeze="encoder")
+    assert [g["lr"] for g in probe.optimizer_groups(3e-5)] == [1e-3]           # frozen encoder: only the head trains
+    weights = Wav2Vec2Classifier(config=tiny_wav2vec2, weighted_layer_sum=True).layer_weights()
+    assert len(weights) == 3 and np.isclose(sum(weights), 1.0)                 # input embedding + 2 layers
+    assert model.layer_weights() is None
+
+
+def test_layer_weights_start_equal_after_loading_a_pretrained_checkpoint(tiny_wav2vec2, tmp_path):
+    """A checkpoint has no layer weights, and from_pretrained left them as arbitrary memory (first A5-R2-06 run)."""
+    from transformers import Wav2Vec2Model
+    from src.models.wav2vec2 import Wav2Vec2Classifier
+
+    Wav2Vec2Model(tiny_wav2vec2).save_pretrained(tmp_path)          # an encoder-only checkpoint, like XLS-R's
+    model = Wav2Vec2Classifier(backbone=str(tmp_path), weighted_layer_sum=True)
+    np.testing.assert_array_equal(model.net.layer_weights.detach().numpy(), np.full(3, 1 / 3, np.float32))
+
+
+def test_train_model_on_raw_waveforms(tiny_wav2vec2, tmp_path):
+    from src.models.wav2vec2 import Wav2Vec2Classifier
+    from src.train_torch import load_checkpoint
+
+    rng = np.random.default_rng(0)
+    y = np.repeat([0, 1], 12)
+    t = np.arange(8000) / 16000
+    X = np.stack([rng.uniform(0.2, 1.0) * np.sin(2 * np.pi * (300 if c == 0 else 1200) * t) for c in y])
+    X = (X + 0.05 * rng.standard_normal(X.shape)).astype(np.float32)          # two "words": a low and a high tone
+    cfg = TrainConfig(epochs=2, batch_size=8, lr=1e-3, patience=2, seed=0, standardize=False, eval_batch_size=5)
+    make = lambda: Wav2Vec2Classifier(n_classes=2, config=tiny_wav2vec2, head_lr=1e-2)
+    r = train_model(make, X, y, X, y, cfg, verbose=False, checkpoint=tmp_path / "a5.pt")
+    assert r.scaler.mean_ == 0 and r.scaler.std_ == 1                          # waveforms are not standardised
+    assert r.val_logits.shape == (24, 2) and len(r.history) == 2
+    model, scaler, _ = load_checkpoint(tmp_path / "a5.pt", make)
+    np.testing.assert_allclose(predict_logits(model, X, scaler), r.val_logits, atol=1e-4)
+
+
 # ------------------------------------------------------------------ training loop
 def test_training_learns_temporal_order_and_is_reproducible(tmp_path):
     X, y = mirror_task()

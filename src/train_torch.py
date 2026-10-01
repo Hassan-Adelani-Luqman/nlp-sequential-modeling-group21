@@ -1,10 +1,14 @@
-"""Shared PyTorch training loop for the frame-sequence models (A3 BiLSTM, A4 TC-ResNet).
+"""Shared PyTorch training loop for the neural models (A3 BiLSTM, A4 TC-ResNet, A5 wav2vec 2.0 / XLS-R).
 
 * Inputs: cached features (N, frames, channels) in their natural units (dB for log-mel).
   Augmentation (``src.augment``) is applied to training clips on the fly, then every
   clip is standardised with statistics fitted on the training split only.
+  Raw waveforms (A5, shape (N, samples)) skip that step (``standardize=False``):
+  the model normalises each clip itself.
 * Optimisation: AdamW, one-cycle (or cosine) learning-rate schedule, gradient
   clipping, and cross-entropy with label smoothing. Mixed precision is used on CUDA.
+  A model with an ``optimizer_groups(lr)`` method sets its own parameter groups, e.g. a
+  pretrained encoder at ``lr`` and a new classification head at a higher rate.
 * Model selection: early stopping on validation **log loss** (plain cross-entropy
   without label smoothing, i.e. the official metric). The best epoch's weights are restored.
 * Reproducibility: pass a *function* that builds the model; the loop seeds every
@@ -48,6 +52,8 @@ class TrainConfig:
     amp: bool = True               # mixed precision, only used on CUDA
     num_workers: int = 0           # 0 is safest in notebooks on Windows; 2 on Kaggle/Colab
     seed: int = 42
+    standardize: bool = True       # False for raw waveforms, which the model normalises per clip (A5)
+    eval_batch_size: int = 256     # validation batch size; lower it for large models
 
 
 @dataclass
@@ -108,7 +114,8 @@ def load_checkpoint(path: Path | str, model_fn: Callable[[], nn.Module],
 
 def _make_scheduler(optimizer, cfg: TrainConfig, total_steps: int):
     if cfg.scheduler == "onecycle":
-        return torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=cfg.lr, total_steps=total_steps, pct_start=0.1)
+        max_lr = [g["lr"] for g in optimizer.param_groups]   # one peak per parameter group
+        return torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=max_lr, total_steps=total_steps, pct_start=0.1)
     if cfg.scheduler == "cosine":
         return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_steps)
     raise ValueError("scheduler must be 'onecycle' or 'cosine'")
@@ -124,12 +131,13 @@ def train_model(model_fn: Callable[[], nn.Module], X_tr: np.ndarray, y_tr, X_va:
     set_seed(cfg.seed)
     model = model_fn().to(device)
 
-    scaler = Standardizer().fit(X_tr)
+    scaler = Standardizer().fit(X_tr) if cfg.standardize else Standardizer.identity()
     y_tr, y_va = np.array(y_tr, dtype=np.int64), np.array(y_va, dtype=np.int64)  # writable copies (pandas views are read-only)
     loader = DataLoader(FeatureDataset(X_tr, y_tr, scaler, augment), batch_size=cfg.batch_size, shuffle=True,
                         num_workers=cfg.num_workers, pin_memory=device.type == "cuda",
                         generator=torch.Generator().manual_seed(cfg.seed))
-    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    params = model.optimizer_groups(cfg.lr) if hasattr(model, "optimizer_groups") else model.parameters()
+    optimizer = torch.optim.AdamW(params, lr=cfg.lr, weight_decay=cfg.weight_decay)
     scheduler = _make_scheduler(optimizer, cfg, cfg.epochs * len(loader))
     criterion = nn.CrossEntropyLoss(label_smoothing=cfg.label_smoothing)
     use_amp = cfg.amp and device.type == "cuda"
@@ -155,7 +163,7 @@ def train_model(model_fn: Callable[[], nn.Module], X_tr: np.ndarray, y_tr, X_va:
             total += loss.item() * len(yb)
             seen += len(yb)
 
-        logits = predict_logits(model, X_va, scaler, device=device)
+        logits = predict_logits(model, X_va, scaler, batch_size=cfg.eval_batch_size, device=device)
         val_loss = nn.functional.cross_entropy(torch.from_numpy(logits), y_va_t).item()  # no smoothing: = log loss
         pred = logits.argmax(1)
         history.append({"epoch": epoch, "train_loss": total / seen, "val_loss": val_loss,

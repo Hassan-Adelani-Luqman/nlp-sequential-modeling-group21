@@ -1,4 +1,4 @@
-"""On-the-fly augmentation of log-mel spectrograms (training split only).
+"""On-the-fly augmentation of log-mel spectrograms, and of raw waveforms for A5 (training split only).
 
 Augmentation works on the cached log-mel features in dB, so GPU sessions never
 decode audio. It uses no external data (the competition rules allow only the
@@ -129,3 +129,69 @@ class LogMelAugment:
         if self.noise_snr_db and self.rng.random() < self.p_noise:
             x = self._noise(x)
         return self._mask(x).astype(np.float32)
+
+
+class WaveAugment:
+    """On-the-fly augmentation of raw waveforms (A5), the counterpart of ``LogMelAugment``'s shift, tempo and noise.
+
+    * time shift of up to +-``shift_ms``, padding with silence (zeros) rather than wrapping;
+    * speed perturbation: the clip is resampled (linear interpolation) by a factor in ``speed``. Unlike the
+      log-mel tempo change, this changes the pitch as well as the tempo;
+    * white noise at a random SNR (dB) relative to the louder half of the clip's 10 ms frames.
+
+    There is no masking here: wav2vec 2.0 masks spans of its own latent frames while it is fine-tuned.
+    """
+
+    def __init__(self, shift_ms: int = 100, speed: tuple[float, float] | None = (0.9, 1.1), p_speed: float = 0.5,
+                 noise_snr_db: tuple[float, float] | None = (10.0, 30.0), p_noise: float = 0.5, sr: int = 16000,
+                 seed: int | None = None):
+        self.shift_ms, self.speed, self.p_speed = shift_ms, speed, p_speed
+        self.noise_snr_db, self.p_noise, self.sr = noise_snr_db, p_noise, sr
+        self.rng = np.random.default_rng(seed)
+
+    def describe(self) -> dict:
+        """Settings, for the experiment log."""
+        return {"shift_ms": self.shift_ms, "speed": self.speed, "noise_snr_db": self.noise_snr_db}
+
+    def _speed(self, x: np.ndarray) -> np.ndarray:
+        """Resample by a speed factor, then centre-crop or pad with silence back to the original length."""
+        rate = self.rng.uniform(*self.speed)
+        n = len(x)
+        new_n = max(2, int(round(n / rate)))
+        fast = np.interp(np.linspace(0, n - 1, new_n), np.arange(n), x)
+        if new_n >= n:
+            start = (new_n - n) // 2
+            return fast[start: start + n]
+        out = np.zeros_like(x)
+        pad = (n - new_n) // 2
+        out[pad: pad + new_n] = fast
+        return out
+
+    def _shift(self, x: np.ndarray) -> np.ndarray:
+        k = int(self.rng.integers(-self.shift_ms, self.shift_ms + 1)) * self.sr // 1000   # ms -> samples
+        if k == 0:
+            return x
+        out = np.zeros_like(x)
+        if k > 0:
+            out[k:] = x[:-k]
+        else:
+            out[:k] = x[-k:]
+        return out
+
+    def _noise(self, x: np.ndarray) -> np.ndarray:
+        hop = self.sr // 100
+        frames = x[: len(x) // hop * hop].reshape(-1, hop)
+        power = (frames ** 2).mean(1)
+        signal = power[power >= np.median(power)].mean()           # louder half of the frames ~ the word
+        snr = self.rng.uniform(*self.noise_snr_db)
+        return x + self.rng.normal(0.0, np.sqrt(signal / 10.0 ** (snr / 10.0)), size=x.shape)
+
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        x = np.asarray(x, dtype=np.float32)
+        if self.speed and self.rng.random() < self.p_speed:
+            x = self._speed(x)
+        if self.shift_ms:
+            x = self._shift(x)
+        if self.noise_snr_db and self.rng.random() < self.p_noise:
+            x = self._noise(x)
+        return x.astype(np.float32)

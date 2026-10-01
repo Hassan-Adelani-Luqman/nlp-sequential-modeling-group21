@@ -297,6 +297,13 @@ class Standardizer:
     def fit_transform(self, X):
         return self.fit(X).transform(X)
 
+    @classmethod
+    def identity(cls) -> "Standardizer":
+        """A no-op scaler, for inputs the model normalises itself (raw waveforms, A5)."""
+        scaler = cls()
+        scaler.mean_, scaler.std_ = np.float32(0.0), np.float32(1.0)
+        return scaler
+
 
 def build_cache(presets: dict | None = None, n_jobs: int = -1, refresh: bool = False) -> dict:
     """Compute every preset for the train/val/test splits and write ``cache/features_manifest.json``.
