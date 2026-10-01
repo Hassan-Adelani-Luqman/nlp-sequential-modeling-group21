@@ -1,0 +1,6 @@
+approach,parameters,latency ms/clip,size MB (32-bit),train minutes (final run),train device,latency measured on
+A1,2196.0,7.183134499882726,0.008784,0.052,cpu,"x86_64 (Linux), 1 thread"
+A2,92880.0,112.86955900004614,0.37152,11.0237,cpu,"x86_64 (Linux), 1 thread"
+A3,855052.0,13.778507499864645,3.420208,1.1825,Tesla T4,"x86_64 (Linux), 1 thread"
+A4,149988.0,9.05996800020148,0.599952,0.9734,Tesla T4,"x86_64 (Linux), 1 thread"
+A5,315704204.0,870.8372974992926,1262.816816,13.0175,Tesla T4,"x86_64 (Linux), 1 thread"

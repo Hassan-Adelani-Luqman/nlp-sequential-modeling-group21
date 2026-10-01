@@ -11,9 +11,9 @@
   "val_macro_f1": 0.9715,
   "val_logloss": 0.1194,
   "val_acc": 0.9714,
-  "test_macro_f1": "",
-  "test_logloss": "",
-  "test_acc": "",
+  "test_macro_f1": 0.9698,
+  "test_logloss": 0.1064,
+  "test_acc": 0.9698,
   "train_time_min": 0.9734,
   "gpu": "Tesla T4",
   "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"energy\", \"seconds\": 2.0, \"n_mfcc\": 40}, \"model\": {\"blocks\": 3, \"width\": 1.5, \"kernel\": 9, \"dropout\": 0.5}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.001, \"patience\": 5}, \"augment\": \"full\", \"seed\": 42, \"best_epoch\": 27, \"epochs_run\": 32, \"temperature\": 0.6609382679869685, \"n_params\": 149988, \"receptive_field_ms\": 1710}"

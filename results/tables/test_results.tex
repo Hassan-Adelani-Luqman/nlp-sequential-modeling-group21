@@ -1,0 +1,11 @@
+\begin{tabular}{@{}lrrrcccc@{}}
+\toprule
+Approach & Params & Train (min) & CPU ms/clip & Log loss & Accuracy (\%) & Macro-F1 & ECE \\
+\midrule
+A1 MFCC stats + LR & 2K & 0.1 & 7 & 0.700 & 79.5 & 0.795 & 0.047 \\
+A2 GMM-HMM & 93K & 11.0 & 113 & 0.186 & 96.5 & 0.965 & 0.023 \\
+A3 BiLSTM + attention & 855K & 1.2 & 14 & 0.170 $\pm$ 0.009 & 96.0 $\pm$ 0.3 & 0.960 $\pm$ 0.003 & 0.017 $\pm$ 0.001 \\
+A4 TC-ResNet & 150K & 1.0 & 9 & 0.125 $\pm$ 0.026 & 96.3 $\pm$ 1.2 & 0.963 $\pm$ 0.012 & 0.019 $\pm$ 0.003 \\
+A5 XLS-R (fine-tuned) & 316M & 13.0 & 871 & 0.093 $\pm$ 0.001 & 98.1 $\pm$ 0.1 & 0.982 $\pm$ 0.001 & 0.014 $\pm$ 0.003 \\
+\bottomrule
+\end{tabular}

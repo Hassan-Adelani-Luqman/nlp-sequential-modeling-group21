@@ -11,9 +11,9 @@
   "val_macro_f1": 0.9527,
   "val_logloss": 0.1799,
   "val_acc": 0.9524,
-  "test_macro_f1": "",
-  "test_logloss": "",
-  "test_acc": "",
+  "test_macro_f1": 0.965,
+  "test_logloss": 0.1857,
+  "test_acc": 0.9651,
   "train_time_min": 11.0237,
   "gpu": "cpu",
   "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"energy\", \"seconds\": 1.5, \"n_mfcc\": 13}, \"cmvn\": true, \"n_states\": 12, \"n_mix\": 8, \"temperature\": 0.3837024324448259, \"median_frames\": 151.0}"

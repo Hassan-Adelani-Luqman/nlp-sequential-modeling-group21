@@ -1,0 +1,20 @@
+{
+  "exp_id": "A2-R4-01",
+  "date": "2026-10-01 01:02",
+  "member": "M4",
+  "approach": "A2",
+  "round": "R4",
+  "config_file": "notebooks/06_results_error_analysis.ipynb",
+  "seed": 42,
+  "change_vs_previous": "final configuration (A2-R2-03) on 10% of the training clips",
+  "rationale": "data-size curve (R4): how much labelled speech each approach needs",
+  "val_macro_f1": 0.8968,
+  "val_logloss": 0.4324,
+  "val_acc": 0.8968,
+  "test_macro_f1": 0.8922,
+  "test_logloss": 0.4286,
+  "test_acc": 0.8921,
+  "train_time_min": 1.7638,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"energy\", \"seconds\": 1.5, \"n_mfcc\": 13}, \"cmvn\": true, \"n_states\": 12, \"n_mix\": 8, \"fraction\": 0.1, \"n_train\": 288, \"base_run\": \"A2-R2-03\", \"temperature\": 0.5827091050630545}"
+}

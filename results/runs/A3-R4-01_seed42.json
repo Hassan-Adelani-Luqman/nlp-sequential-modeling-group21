@@ -1,0 +1,20 @@
+{
+  "exp_id": "A3-R4-01",
+  "date": "2026-10-01 01:11",
+  "member": "M4",
+  "approach": "A3",
+  "round": "R4",
+  "config_file": "notebooks/06_results_error_analysis.ipynb",
+  "seed": 42,
+  "change_vs_previous": "final configuration (A3-R2-12) on 10% of the training clips",
+  "rationale": "data-size curve (R4): how much labelled speech each approach needs",
+  "val_macro_f1": 0.8102,
+  "val_logloss": 0.6337,
+  "val_acc": 0.8111,
+  "test_macro_f1": 0.8341,
+  "test_logloss": 0.5933,
+  "test_acc": 0.8349,
+  "train_time_min": 0.5123,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"mfcc\", \"crop\": \"energy\", \"seconds\": 1.0, \"n_mfcc\": 40}, \"model\": {\"hidden\": 128, \"layers\": 2, \"dropout\": 0.3, \"bidirectional\": true, \"pooling\": \"attention\", \"conv_frontend\": true}, \"train\": {\"epochs\": 40, \"batch_size\": 64, \"lr\": 0.002, \"patience\": 5}, \"augment\": \"specaugment\", \"fraction\": 0.1, \"n_train\": 288, \"base_run\": \"A3-R2-12\", \"temperature\": 0.9104080646642322, \"best_epoch\": 40, \"epochs_run\": 40}"
+}

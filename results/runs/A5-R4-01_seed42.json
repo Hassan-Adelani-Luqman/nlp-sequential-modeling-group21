@@ -1,0 +1,20 @@
+{
+  "exp_id": "A5-R4-01",
+  "date": "2026-10-01 01:15",
+  "member": "M4",
+  "approach": "A5",
+  "round": "R4",
+  "config_file": "notebooks/06_results_error_analysis.ipynb",
+  "seed": 42,
+  "change_vs_previous": "final configuration (A5-R2-03) on 10% of the training clips",
+  "rationale": "data-size curve (R4): how much labelled speech each approach needs",
+  "val_macro_f1": 0.9682,
+  "val_logloss": 0.298,
+  "val_acc": 0.9683,
+  "test_macro_f1": 0.9652,
+  "test_logloss": 0.2634,
+  "test_acc": 0.9651,
+  "train_time_min": 2.045,
+  "gpu": "Tesla T4",
+  "notes": "{\"features\": {\"feature\": \"wave\", \"crop\": \"energy\", \"seconds\": 1.5}, \"model\": {\"backbone\": \"xlsr-300m\", \"freeze\": \"feature_encoder\", \"head_lr\": 0.001, \"weighted_layer_sum\": false, \"mask_time_prob\": 0.05, \"layerdrop\": 0.0}, \"train\": {\"epochs\": 10, \"batch_size\": 16, \"lr\": 3e-05, \"patience\": 10}, \"augment\": \"wave\", \"fraction\": 0.1, \"n_train\": 288, \"base_run\": \"A5-R2-03\", \"temperature\": 0.4870706229482462, \"best_epoch\": 10, \"epochs_run\": 10}"
+}
