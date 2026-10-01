@@ -31,8 +31,8 @@ al.\ combined convolution, recurrence and attention in one model, reaching 94.1\
 Commands V1 and V2 with only 202K parameters. They also used the attention weights to show which parts of the
 audio drove each decision~\cite{deandrade2018neural}.
 
-Our A3 belongs to this line. It differs in separating the contributions: A3 is recurrent by default, the
-convolutional front-end is tested as an ablation, and A4 is purely convolutional.
+Our A3 belongs to this line. It differs in separating the contributions: A3 starts purely recurrent, adds the
+convolutional front-end only as a tested search step, and is compared with the purely convolutional A4.
 
 Whether recurrence is needed at all is itself an open question. A systematic comparison across sequence-modelling
 benchmarks found that a simple convolutional architecture outperforms canonical recurrent networks such as LSTMs,
@@ -78,11 +78,13 @@ Four lessons from this work shaped the design:
   \item Keyword spotting has been solved with very different ways of modelling time: order-free features,
         Markov states, convolution, recurrence and self-attention. We therefore compare one representative of
         each on the same data, split and metrics, rather than tuning a single family.
-  \item Attention-based recognisers can show where in the audio they look~\cite{deandrade2018neural}. We use this
-        to test our central hypothesis directly: words whose sounds differ mainly in order (\textit{tisa} and
-        \textit{sita}) should separate order-aware from order-free models.
-  \item Augmentation such as SpecAugment is most useful when data is scarce~\cite{park2019specaugment}. With 245
-        clips per word, we treat it as a first-class experimental factor rather than a fixed default.
+  \item Attention-based recognisers can show where in the audio they look~\cite{deandrade2018neural}. We inspect
+        A3's attention, but test our central hypothesis through behaviour: words whose sounds differ mainly in order
+        (\textit{tisa} and \textit{sita}) should separate order-aware from order-free models, and reversing a word
+        should hurt only the former.
+  \item Feature-level augmentation such as SpecAugment improves recognition even on large
+        corpora~\cite{park2019specaugment}. With only 245 clips per word, we treat it as a first-class experimental
+        factor rather than a fixed default.
   \item Pretrained speech Transformers need very little labelled data~\cite{baevski2020wav2vec}, but their
         pretraining data contain little Swahili~\cite{babu2022xlsr}. A5 therefore tests transfer from other
         languages, and its R2 search compares multilingual with English-only pretraining.

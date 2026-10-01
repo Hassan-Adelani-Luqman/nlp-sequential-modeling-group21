@@ -1,0 +1,36 @@
+% ---------------------------------------------------------------------------
+% Conclusion and Future Work (Section 7).
+% ---------------------------------------------------------------------------
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+We asked how effectively sequential models recognise spoken Swahili words. On 12 crowdsourced Swahili words they do
+so very effectively, and the evidence points to three findings and one limit.
+\begin{itemize}
+  \item \emph{Order:} the order-aware models reach 96--98\% accuracy, against 79.5\% for order-free statistics. The
+        models also differ in capacity, but the anagram pair and the stress test show that every order-aware model
+        depends on order.
+  \item \emph{The kind of sequence model} matters less than expected. A classical HMM, a BiLSTM and a TC-ResNet reach
+        similar accuracy. The convolutional model has the lowest log loss of the three (seed 42; within two seed
+        standard deviations across seeds), with under a fifth of the BiLSTM's parameters.
+  \item \emph{Pretraining} brings the largest gain we observed, although our design cannot separate it from A5's
+        architecture and size. The fine-tuned XLS-R is the best and most stable model (98.1\% test accuracy, log
+        loss 0.093). With 24 clips per word it is about as accurate as the models trained from scratch on ten times
+        more data. The price is 96 times the latency and 2{,}100 times the size of A4.
+  \item \emph{The limit is the data.} The clips that defeat every order-aware model are mostly quiet, noisy or badly
+        cropped, and include a likely label error and words said in English. Noise is the main risk for deployment.
+\end{itemize}
+
+\paragraph{Future work}
+\begin{itemize}
+  \item \emph{Speaker-disjoint evaluation:} cluster speaker embeddings into pseudo-speakers, to measure how much
+        speaker overlap inflates our scores.
+  \item \emph{Noise robustness:} multi-condition training with realistic noise, where the rules allow it, since
+        errors concentrate below 30~dB SNR.
+  \item \emph{Rejecting other speech:} an ``unknown'' and ``silence'' class, and voice-activity detection, to avoid
+        the crop failures and to reject words outside the vocabulary.
+  \item \emph{Separating architecture from pretraining:} a Transformer trained from scratch~\cite{berg2021keyword},
+        and a backbone covering more African languages (MMS~\cite{pratap2024scaling}).
+  \item \emph{Deployment:} distilling A5 into an A4-sized model for phones, and streaming recognition, for which a
+        forward-only recurrent model already reaches 80\% accuracy 500~ms into the word.
+\end{itemize}

@@ -1,7 +1,7 @@
 % ---------------------------------------------------------------------------
 % Evaluation metrics (Methodology, Section 4) - drafted by M1.
 % Citation keys match report/references.bib. Numbers come from results/
-% (notebooks/02_baselines.ipynb); update the R3 test-set numbers when final.
+% (notebooks/02_baselines.ipynb); test-set results are in results_discussion.tex.
 % Needs in the preamble: \usepackage{booktabs, amsmath} (table rules, equation).
 % ---------------------------------------------------------------------------
 \subsection{Evaluation Metrics}
@@ -23,7 +23,7 @@ money or a helpline must decide whether to act on a recognised digit or ask the 
 decision depends on the confidence. Log loss also punishes confident mistakes severely. Assigning probability
 $0.01$ to the true word costs $4.6$ nats, against $\ln 12 \approx 2.48$ for a uniform guess.
 
-Our own experiments show why accuracy alone is not enough. For the MFCC-statistics SVM (A1), the probability
+Our own experiments show why accuracy alone is not enough. For the MFCC-statistics SVM (an early A1 variant on 40 MFCCs), the probability
 method changed the log loss far more than the accuracy. libsvm's pairwise-coupled Platt
 probabilities~\cite{platt1999probabilistic,wu2004probability} gave a validation log loss of $0.880$ at $74.3\%$
 accuracy. The one-vs-rest sigmoid calibration that scikit-learn now recommends gave $1.230$ at $73.5\%$, and
@@ -57,32 +57,19 @@ hypothesis. The order-free A1 confuses \textit{tisa}/\textit{sita} on $6.7\%$ of
 the order-aware HMM (A2) confuses them on none.
 
 \paragraph{Uncertainty and significance}
-Model selection uses the validation split only. The test split is used once, in the final round, after every
-configuration is frozen. Neural models are trained with three seeds and reported as mean $\pm$ standard
-deviation. For every model we report a 95\% percentile bootstrap confidence interval (1{,}000
-resamples)~\cite{efron1993introduction}. Pairs of models are compared on the same test clips with the exact
+Model selection uses the validation split only. The test split is used only after every configuration is frozen,
+and never for selection. Neural models are trained with three seeds and reported as mean $\pm$ standard
+deviation. For every model we compute 95\% percentile bootstrap confidence intervals for accuracy and log loss
+(1{,}000 resamples)~\cite{efron1993introduction}; they are listed in \texttt{results/metrics/test\_results.csv}. Pairs of models are compared on the same test clips with the exact
 McNemar test on their discordant predictions~\cite{mcnemar1947note}. Dietterich found that this test has an
 acceptable Type~I error, and recommends it when each learning algorithm can be run only
-once~\cite{dietterich1998approximate}. That fits our setting: retraining the pretrained transformer the ten
-times a $5\times2$ cross-validated test requires is too expensive. Comparisons against the best
-model are corrected for multiplicity with Holm's procedure~\cite{holm1979simple}.
+once~\cite{dietterich1998approximate}. That fits our setting: retraining the pretrained Transformer the ten
+times a $5\times2$ cross-validated test requires is too expensive. The five planned comparisons (the best model
+against each other model, and the recurrent A3 against the convolutional A4) are corrected together for
+multiplicity with Holm's procedure~\cite{holm1979simple}.
 
-\paragraph{Limitations of the evaluation}
-\begin{enumerate}
-  \item \emph{Selection bias.} The final baselines were chosen from 21 logged runs on the validation split, so
-        validation scores are optimistic~\cite{cawley2010overfitting}. Only the test split gives unbiased
-        estimates.
-  \item \emph{Sample size.} With 630 test clips, the 95\% interval on accuracy is about $\pm1.7$ points at
-        $95\%$ accuracy and about $\pm3.2$ points at $78\%$. The pair diagnostics rest on about 105 clips per pair,
-        so a single clip moves them by about one percentage point.
-  \item \emph{Unknown speakers.} The data has no speaker identifiers, so the same speaker may appear in both
-        training and test clips. All scores may therefore overstate performance on unseen speakers.
-  \item \emph{Closed set.} The metrics say nothing about rejecting words outside the 12-word vocabulary, which a
-        deployed system would need.
-  \item \emph{Log loss sensitivity.} A handful of confident errors can dominate log loss, so it is always reported
-        together with accuracy and ECE. ECE itself depends on the binning, and with 630 clips the low-confidence
-        bins are sparse.
-\end{enumerate}
+\paragraph{Limitations}
+Selection bias, the size of the test split, unknown speakers and the closed vocabulary limit what these metrics can show. They are discussed in Section~\ref{sec:limitations}.
 
 \begin{table}[t]
   \centering

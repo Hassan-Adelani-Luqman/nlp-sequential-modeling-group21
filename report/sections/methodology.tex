@@ -12,17 +12,19 @@ The challenge training set contains 4{,}200 labelled clips (350 per word), all 1
 PCM~\cite{zindi2021swahili}. The test labels are hidden, so we froze one stratified 70/15/15 split of the training
 set (seed 42) into 2{,}940 training, 630 validation and 630 test clips (52--53 per word in validation and test). A
 hash of the split is checked by every notebook. No byte-identical duplicate recordings were found.
-Model selection uses the validation split only. The test split is scored once, after every configuration is frozen.
+Model selection uses the validation split only. The test split is used only after every configuration is frozen, for
+the final runs and the data-size runs, and never for selection.
 Experiments proceed in rounds: R0 establishes each approach, R1 trains default neural configurations, R2 tunes, R3
 trains the final configurations with three seeds and evaluates them on the test split, and R4 varies the amount of
 training data. Every run is logged with the change it makes and the reason for it (\texttt{results/experiments.csv}).
 
 \subsection{Preprocessing}
-Clips last 2.2--62~s (median 4.3~s), but a spoken digit lasts under a second, so most of each clip is silence or
+Clips last 2.5--62~s (median 4.3~s), but a spoken digit lasts under a second, so most of each clip is silence or
 background noise. A single silence-trimming threshold was unreliable: at 30~dB, 10\% of trimmed clips in a
-600-clip sample still exceeded 4.5~s. We therefore keep the 1.5~s window with the highest signal energy. When the whole word fits, many
-window positions hold almost the same energy, so we take the middle of that plateau. This centres the word: the
-energy centroid lies within $\pm0.2$~s of the window centre for 90\% of clips. The window retains a median of
+600-clip sample still exceeded 4.5~s. We therefore keep the window with the highest signal energy: 1.5~s by default,
+with 1.0 and 2.0~s tested in R2. When the whole word fits, many window positions hold almost the same energy, so we
+take the middle of that plateau. This centres the word: the energy centroid lies within $\pm0.2$~s of the window
+centre for 90\% of clips. The 1.5~s window retains a median of
 99.8\% of each clip's above-noise energy, and less than 70\% in only 2.7\% of clips, which are mostly long
 recordings containing several utterances. Each window is peak-normalised.
 
@@ -39,7 +41,8 @@ by self-attention with self-supervised pretraining (A5).
 
 \paragraph{A1: MFCC statistics with a linear classifier}
 Each clip becomes one 156-dimensional vector: the mean, standard deviation, minimum and maximum over time of 13
-MFCCs with their deltas. This discards temporal order entirely. After standardisation, a multinomial logistic
+MFCCs with their deltas. This discards temporal order, except for the roughly 90~ms of local change that the deltas
+span. After standardisation, a multinomial logistic
 regression ($C=0.1$, chosen by 5-fold cross-validation on the training split) outperformed an RBF-kernel SVM with
 Platt-scaled probabilities~\cite{platt1999probabilistic,wu2004probability}.
 
@@ -63,17 +66,10 @@ The design follows the attention-based recogniser of de Andrade et al.~\cite{dea
 deliberate difference. We omit their convolutional layers by default, so that A3 is purely recurrent and contrasts
 cleanly with the convolutional A4. Adding them back is one of the R2 ablations.
 
-The R2 search selected:
-\begin{itemize}
-  \item 40 MFCCs with deltas instead of the log-mel input;
-  \item a 1.0~s window;
-  \item SpecAugment;
-  \item a peak learning rate of $2\times10^{-3}$;
-  \item de Andrade et al.'s convolutional front-end (two 1-D convolutions, kernel 5, 128 channels).
-\end{itemize}
+The R2 search selected 40 MFCCs with deltas instead of log-mel, a 1.0~s window, SpecAugment, a peak learning rate of $2\times10^{-3}$, and de Andrade et al.'s convolutional front-end (two 1-D convolutions, kernel 5, 128 channels).
 The final model has 855K parameters. The front-end lowered the validation log loss only marginally ($0.142\to0.134$)
-and did not change the accuracy (97.0\%). We therefore also report the purely recurrent variant as the reference
-point when comparing recurrence with convolution.
+and did not change the accuracy (97.0\%), so the recurrence does most of the work. The comparisons with A4 use this
+final model; the stress test also includes the purely recurrent variant (687K parameters).
 
 \paragraph{A4: temporal convolutional network (TC-ResNet)}
 A4 follows TC-ResNet~\cite{choi2019temporal}. It treats the frequency axis as channels, and slides
@@ -89,7 +85,7 @@ activation map over time, which we use for interpretation. The R2 search (below)
 selected MFCC-40 with $\Delta$ and $\Delta\Delta$ (120 channels) from a 2.0~s window, with full augmentation. The
 final model has 150K parameters (\texttt{configs/a4\_best.yaml}), 5.7 times fewer than the final A3.
 
-\paragraph{A5: fine-tuned self-supervised speech transformer}
+\paragraph{A5: fine-tuned self-supervised speech Transformer}
 A5 fine-tunes a Transformer~\cite{vaswani2017attention} speech encoder that was pretrained without labels, following
 wav2vec~2.0~\cite{baevski2020wav2vec}. A convolutional feature encoder turns the raw 16~kHz waveform of the same
 centred window into one vector per 20~ms. A Transformer then contextualises these vectors, relating every frame to
@@ -109,7 +105,7 @@ which 311.5M are fine-tuned (\texttt{configs/a5\_best.yaml}): 370 times more tha
   \caption{The five approaches and how each treats temporal order.}
   \label{tab:approaches}
   \small
-  \begin{tabular}{@{}llp{0.42\linewidth}@{}}
+  \begin{tabular}{@{}lp{0.36\linewidth}p{0.44\linewidth}@{}}
     \toprule
     ID & Model & Temporal order \\
     \midrule
@@ -123,7 +119,7 @@ which 311.5M are fine-tuned (\texttt{configs/a5\_best.yaml}): 370 times more tha
 \end{table}
 
 \subsection{Training the neural models}
-A3 and A4 share one training loop (\texttt{src/train\_torch.py}):
+A3 and A4 share one training loop:
 \begin{itemize}
   \item \emph{Optimisation:} AdamW with a one-cycle learning-rate schedule, gradient clipping at 1.0, cross-entropy
         with label smoothing 0.1, batch size 64, and at most 40 epochs.
@@ -151,8 +147,8 @@ requires:
   \item augmentation acts on the waveform: time shifts, speed perturbation (0.9--1.1$\times$, which unlike the
         log-mel tempo change also shifts the pitch), and noise at 10--30~dB SNR.
 \end{itemize}
-Every model's probabilities are then temperature-scaled~\cite{guo2017calibration}, as described in
-Section~\ref{sec:metrics}.
+The probabilities of A2--A5 are then temperature-scaled~\cite{guo2017calibration}, as described in
+Section~\ref{sec:metrics}. A1's fitted temperature was 0.99, so it is used unscaled.
 
 \subsection{Hyperparameter search}
 Classical models were tuned by grid search: cross-validated on the training split for A1, and on the validation
@@ -179,8 +175,13 @@ effects, such as augmentation, pooling, direction and the way the word is locate
 A4 is much less stable across seeds: $0.135\pm0.023$ log loss and $96.8\pm0.3\%$ accuracy. One seed stopped
 early, at epoch 16 of 40, while the learning rate was still high. For A4, therefore, only the effect of the way the
 word is located (silence trim: $+0.157$ log loss) is clearly larger than seed noise. The other R2 differences
-(0.02--0.04) are read as directions, not established effects. A5 is the most stable model: $0.1015\pm0.0009$ log
+(at most 0.039) are read as directions, not established effects. A5 is the most stable model: $0.1015\pm0.0009$ log
 loss and $98.0\pm0.1\%$ accuracy. Pretrained weights leave the seed little to decide. So all of A5's R2 differences,
 except the tie between the 1.5 and 2.0~s windows, are larger than its seed noise.
 
-% TODO: add software references (PyTorch, scikit-learn, librosa, hmmlearn) after verifying them like the others.
+\subsection{Implementation}
+Everything is written in Python. Features use librosa~\cite{mcfee2015librosa}; A1 uses
+scikit-learn~\cite{pedregosa2011scikit}, A2 hmmlearn~\cite{hmmlearn}, A3--A5 PyTorch~\cite{paszke2019pytorch}, and A5
+the Hugging Face Transformers library~\cite{wolf2020transformers}. Neural models were trained on a single NVIDIA Tesla
+T4 (Kaggle), except one A4 run on a laptop CPU, and the classical models on CPUs. The repository's notebooks rebuild
+every table and figure in this report from the logged runs and predictions (\texttt{results/}).

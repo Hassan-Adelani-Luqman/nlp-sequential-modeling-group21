@@ -1,7 +1,7 @@
 % ---------------------------------------------------------------------------
 % Dataset and Exploratory Analysis (Section 3) - drafted for M3 (with M1's Phase 1 profiling).
 % Numbers come from notebooks/01_eda.ipynb and results/metrics/; figures are
-% results/figures/*.png (upload them to Overleaf under figures/).
+% results/figures/*.png (main.tex sets \graphicspath to ../results/).
 % Needs in the preamble: \usepackage{booktabs, graphicx}.
 % ---------------------------------------------------------------------------
 \section{Dataset and Exploratory Analysis}
@@ -14,22 +14,24 @@ words, made by about 300 crowd-workers in Kenya: the digits \textit{moja} to \te
 1{,}800 unlabelled competition test clips. All 6{,}000 files are 16~kHz mono 16-bit PCM, with no corrupt files
 and no byte-identical duplicates. The competition allows no external data and forbids redistribution, so the audio
 is kept off the public repository. As described in Section~\ref{sec:method}, we froze one stratified 70/15/15
-split (2{,}940 / 630 / 630 clips). All distribution analyses below use the training split only, so that no design
-decision was informed by validation or test clips.
+split (2{,}940 / 630 / 630 clips). The distribution statistics below use the training split only. Analyses that
+score a model (the confusions, the prefix curve and the normalisation check) use the validation split, as model
+selection does. None uses the test split.
 
 \subsection{What the data revealed}
 \paragraph{The words are short, but the clips are long}
 Clips last 2.5--62~s (median 4.3~s), while the spoken word lasts a median 0.55~s. Word duration ranges from
 0.45~s for \textit{tatu} to 0.65~s for the three-syllable \textit{hapana}, and 89.5\% of words last at most 1.0~s
 (Fig.~\ref{fig:durations}). A 30~dB silence trim leaves a median of 1.9~s and a 95th percentile of 5.5~s,
-because background noise is kept as part of the ``word''. Every model therefore reads a centred 1.5~s window
-around the clip's highest-energy region. This window retains a median 99.8\% of each clip's above-noise energy.
+because background noise is kept as part of the ``word''. The models therefore read a centred window around the
+clip's highest-energy region: 1.5~s by default, 1.0~s for the final A3 and 2.0~s for the final A4. The 1.5~s window
+retains a median 99.8\% of each clip's above-noise energy.
 
 \paragraph{Recordings vary in level, but are mostly clean}
 Levels span about 19~dB between the 5th and 95th percentiles (median $-32$~dBFS), and 3.8\% of clips reach full
 scale, so windows are peak-normalised. The median estimated SNR is 42~dB, and 80\% of clips exceed 30~dB. Our
-synthetic noise augmentation (10--30~dB) is therefore harsher than most real recordings. This is a plausible reason
-why it added nothing on top of SpecAugment.
+synthetic noise augmentation (10--30~dB) is therefore harsher than most real recordings. The noisy minority matters,
+however: the models fail most on clips below 30~dB (Section~\ref{sec:errors}).
 
 \paragraph{The vocabulary contains an anagram}
 \textit{sita} (six) and \textit{tisa} (nine) contain the same sounds in a different order. The average
@@ -37,7 +39,7 @@ spectrograms show it directly (Fig.~\ref{fig:spectra}): the high-frequency energ
 \textit{sita} and in the middle of \textit{tisa}. Other near-pairs are \textit{nne}/\textit{nane} (letter edit
 distance 1), and \textit{tano}/\textit{tatu} and \textit{saba}/\textit{sita} (distance 2). We track these four
 pairs for every model. Spelling similarity, however, only weakly predicts what an order-free model confuses
-(Spearman $\rho=-0.18$ over all 66 pairs, $p=0.16$). The most confused pair, \textit{mbili}/\textit{ndio}, is far
+(Spearman $\rho=-0.18$ over all 66 pairs, $p=0.16$). Its most confused pair on validation, \textit{mbili}/\textit{ndio}, is far
 apart in spelling, but both words begin with a prenasalised stop and contain /i/.
 
 \paragraph{Order-free features do not separate the words}
@@ -49,7 +51,8 @@ the order-free baseline's ceiling of 77.9\%, and with the large gain from per-ut
 \paragraph{The evidence builds up through the word}
 Trained on only the first 25/50/75/100\% of each word, the order-free classifier reaches 49/72/80/80\% accuracy.
 Words that share a first syllable (\textit{tano}, \textit{tatu}) separate only once their second syllable begins.
-The models therefore need the whole word and its order, not just its onset.
+The evidence therefore builds up over most of the word, not just its onset, and the window must cover the whole
+word.
 
 \paragraph{No leakage, but speakers are unknown}
 No pair of clips across the splits is a near-duplicate (the maximum cosine similarity of standardised MFCC
@@ -71,7 +74,7 @@ both training and test clips (Section~\ref{sec:limitations}).
     Levels vary by $\sim$19~dB; median SNR 42~dB & Peak normalisation; CMVN for the HMM \\
     \textit{sita}/\textit{tisa} differ only in where /s/ occurs & Sequence models; four sound-alike pairs tracked \\
     Order-free features do not cluster by word & Per-utterance normalisation; order-aware models \\
-    Evidence arrives through the word & Models see the whole word and its order \\
+    Evidence arrives through the word & Models see the whole word \\
     No near-duplicates; no speaker IDs & No leakage found; speaker overlap is a limitation \\
     \bottomrule
   \end{tabular}

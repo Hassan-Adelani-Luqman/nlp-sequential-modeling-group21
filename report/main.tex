@@ -1,0 +1,90 @@
+% ---------------------------------------------------------------------------
+% Group 21 report: Formative Assignment 2 (NLP and Language Technologies).
+% Build: tectonic main.tex   (or pdflatex + bibtex, or upload report/ and results/ to Overleaf)
+% Figures and the main results table are read from ../results/, which notebooks
+% 01-07 regenerate, so the report always shows the logged numbers.
+% ---------------------------------------------------------------------------
+\documentclass[conference]{IEEEtran}
+\usepackage{iftex}
+\ifXeTeX                       % Tectonic/XeLaTeX: a Times clone, as IEEEtran sets with pdfLaTeX
+  \usepackage{amsmath,amssymb}
+  \usepackage{unicode-math}
+  \setmainfont{texgyretermes}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+                              ItalicFont=*-italic, BoldItalicFont=*-bolditalic]
+  \setmathfont{texgyretermes-math.otf}
+\else
+  \usepackage{amsmath,amssymb}
+\fi
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cite}
+\graphicspath{{../results/}}
+
+% ---- fill these in before submission ---------------------------------------
+\newcommand{\MemberOne}{Hassan Adelani Luqman}
+\newcommand{\MemberTwo}{Haguma Bianca}
+\newcommand{\MemberThree}{Emmanuel Mukasa}
+\newcommand{\MemberFour}{Emmanuel Nsabagasani}
+\newcommand{\VideoLink}{\url{https://youtu.be/Gv1f1HYyZ18}}
+\newcommand{\TrackerLink}{\url{https://docs.google.com/spreadsheets/d/1lV5C-49tpxNkssPY9lWKOiY321QZCv3a-YPMJONuf9E/edit?usp=sharing}}
+\newcommand{\RepoLink}{\url{https://github.com/Hassan-Adelani-Luqman/nlp-sequential-modeling-group21}}
+% ----------------------------------------------------------------------------
+
+\begin{document}
+
+\title{Does Order Matter? Sequential Models for\\Spoken Swahili Word Recognition}
+
+\author{\IEEEauthorblockN{\MemberOne, \MemberTwo, \MemberThree, \MemberFour}
+\IEEEauthorblockA{Group 21 \,$\cdot$\, NLP and Language Technologies, Formative Assignment 2}}
+
+\maketitle
+
+\begin{abstract}
+Voice interfaces built on a handful of spoken words could serve users with limited literacy, but African languages
+such as Swahili have little labelled speech. We ask how effectively sequential models recognise 12 spoken Swahili
+words (the Zindi Swahili Audio Classification data, 4{,}200 clips), and what evidence supports their strengths and
+limitations. Five approaches differ in how they model temporal order: order-free MFCC statistics with logistic
+regression, a GMM-HMM, a BiLSTM with attention, a temporal convolutional network (TC-ResNet), and a fine-tuned
+multilingual self-supervised Transformer (XLS-R). All five share one frozen split and protocol, and the test split was
+used only after every configuration was frozen. The order-aware models reach 96--98\% test accuracy, against 79.5\%
+for order-free statistics, and a stress test that reverses or shuffles each word shows that they rely on order. The
+fine-tuned XLS-R is best (98.1\% accuracy, log loss 0.093), and more accurate than every other model under
+Holm-corrected McNemar tests. With only 24 clips per word, it is about as accurate as the models trained from scratch
+on 245. The HMM, BiLSTM and TC-ResNet tie on accuracy, and the convolutional model has the lowest log loss of the
+three, at 150K parameters. Ten test clips defeat every order-aware model. Confident learning and an external
+recogniser trace several of them to the data: a likely label error, words said in English, and crops that missed the
+word.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Swahili, keyword spotting, sequence models, HMM, LSTM, temporal convolution, wav2vec 2.0, low-resource languages
+\end{IEEEkeywords}
+
+\noindent\fbox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{\small\raggedright
+\textbf{Code and results:} \RepoLink\\
+\textbf{Demo video:} \VideoLink\\
+\textbf{Contribution tracker:} \TrackerLink}}
+
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/dataset_eda}
+\input{sections/methodology}
+\input{sections/evaluation_metrics}
+\input{sections/results_discussion}
+\input{sections/error_analysis}
+\input{sections/limitations_responsible_ai}
+\input{sections/conclusion}
+
+\section*{Team and Contributions}
+Ownership followed the project plan: \MemberOne{} (M1) the data pipeline, evaluation and baselines A1--A2; \MemberTwo{} (M2) augmentation, the training loop and A3; \MemberThree{} (M3) the EDA, A4 and the error analysis; \MemberFour{} (M4) A5 and the final evaluation. Commits and tasks per member are in the contribution tracker.
+
+\section*{AI-Use Statement}
+AI was used extensively to plan the project, to understand complex scenarios, and to help write some of the codes.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

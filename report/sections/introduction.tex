@@ -1,0 +1,51 @@
+% ---------------------------------------------------------------------------
+% Introduction (Section 1). Citation keys match report/references.bib.
+% ---------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+
+Spoken digits and a spoken ``yes'' or ``no'' are enough to run a mobile-money transfer, a health hotline or a
+phone menu. For users with limited literacy, voice is often the only practical interface~\cite{doumbouya2021using}.
+Swahili is widely spoken across East Africa. Yet it remains a low-resource language for speech technology: it has
+only limited labelled data~\cite{joshi2020state}, and it was missing from the first releases of the largest open
+crowdsourced speech corpus~\cite{ardila2020common}. Recognising a small Swahili vocabulary reliably, cheaply and
+with honest confidence is therefore a useful problem in its own right, as well as a test of how well modern sequence
+models transfer to an African language.
+
+We study the Zindi Swahili Audio Classification challenge~\cite{zindi2021swahili}: 4{,}200 crowdsourced clips of
+12 words, the digits \textit{moja} to \textit{kumi} (one to ten), \textit{ndio} (yes) and \textit{hapana} (no),
+scored by log loss. A spoken word is a \emph{sequence} of acoustic frames, and its identity depends on the order of
+its sounds. The vocabulary makes this concrete: \textit{sita} (six) and \textit{tisa} (nine) contain the same sounds
+in a different order. Our research question is therefore:
+\begin{quote}
+  \emph{How effectively can sequential modelling approaches recognise spoken Swahili words, and what evidence
+  supports the strengths and limitations of each approach?}
+\end{quote}
+
+We answer it with five approaches that differ in \emph{how} they model temporal order. A1 discards order: it is a
+logistic regression on MFCC statistics. A2 models order with a Markov chain: a GMM-HMM per word. A3 uses
+recurrence: a bidirectional LSTM with attention. A4 uses convolution over time: TC-ResNet. A5 uses self-attention
+after multilingual self-supervised pretraining: a fine-tuned XLS-R. All five share one frozen data split, one feature
+pipeline and one evaluation code base. They were tuned on validation only, in 55 logged development runs, and the
+test split was used only after every configuration was frozen.
+
+Our contributions are:
+\begin{itemize}
+  \item \emph{A controlled comparison of five ways of modelling order} on an African-language speech task. Neural
+        models are trained with three seeds, and the test results carry bootstrap confidence intervals and
+        Holm-corrected McNemar tests (Section~\ref{sec:results}).
+  \item \emph{Direct evidence of how the models use order.} A temporal-order stress test reverses or shuffles each
+        word. It shows that all order-aware models depend on order, but that the pretrained A5 relies mainly on
+        order within about 100~ms (Section~\ref{sec:errors}).
+  \item \emph{A data-size curve.} With only 24 training clips per word, the pretrained model is already about as
+        accurate as the models trained from scratch on all 245.
+  \item \emph{An error analysis without a human listener.} It combines confident learning with an external Swahili
+        recogniser. The clips that defeat every order-aware model are far more often quiet, noisy or badly cropped,
+        and include a likely label error and words said in English.
+  \item \emph{An open, reproducible pipeline.} The notebooks rebuild every table and figure in this report from the
+        logged runs and predictions.
+\end{itemize}
+
+Section~\ref{sec:related} reviews related work, Section~\ref{sec:data} the data, and Section~\ref{sec:method} the
+methods and metrics. Section~\ref{sec:results} reports and discusses the results, Section~\ref{sec:errors} analyses
+the errors and limitations, and Section~\ref{sec:conclusion} concludes.

@@ -1,0 +1,191 @@
+% ---------------------------------------------------------------------------
+% Results and Discussion (Section 5) - drafted for M4.
+% Numbers come from notebooks/06_results_error_analysis.ipynb (Parts 1-3) and
+% results/metrics/{test_results,test_significance,efficiency,data_size_curve}.csv.
+% The main table is generated: results/tables/test_results.tex.
+% ---------------------------------------------------------------------------
+\section{Results and Discussion}
+\label{sec:results}
+
+\subsection{How the configurations were reached}
+Table~\ref{tab:ablations} lists the development decisions with the largest effects. It covers 55 logged runs, all
+scored on validation.
+
+\emph{Two decisions had the largest effects.} The first is locating the word. Replacing the centred energy window
+with silence trimming raised the validation log loss of A3 from 0.144 to 0.759 and of A4 from 0.119 to 0.276. For
+the HMM, per-utterance CMVN and the energy window together cut the log loss from 1.65 to 0.38, before any change to
+the model. The second, tested on A3, is how the sequence is summarised. A3 with its last hidden state instead of
+attention fell from 96.0\% to 69.7\% accuracy, and a forward-only A3 lost 0.09 log loss.
+
+\emph{Augmentation helped every neural model, but in different forms.} SpecAugment gave A3 its largest tuning gain
+(0.214 to 0.153), but adding time shift, tempo and noise on top made it worse (0.166). For A4, SpecAugment alone changed
+nothing (0.176 to 0.179), while the full set (SpecAugment, time shift, tempo and noise) improved it to 0.140, a gain
+of about 1.5 of its seed standard deviations. The waveform counterpart improved A5 (0.111 to 0.101).
+
+\emph{Pretraining needs fine-tuning.} A5 with a frozen encoder reached only 27\% accuracy. English-only
+wav2vec~2.0 Base came close to the multilingual XLS-R (0.120 against 0.111), although it is 3.3 times smaller.
+
+\emph{Some differences are within seed noise.} Retraining each final configuration with three seeds gave standard
+deviations of 0.004 (A3), 0.023 (A4) and 0.001 (A5) in validation log loss. Differences smaller than these are not
+interpreted.
+
+\begin{table*}[t]
+  \centering
+  \caption{Development decisions with the largest effects (validation log loss, seed 42). Each row changes the
+  then-best configuration; the A2 grid and A4's full augmentation change several settings at once. The seed standard
+  deviation of the final configurations is 0.004 (A3), 0.023 (A4) and 0.001 (A5).}
+  \label{tab:ablations}
+  \small
+  \begin{tabular}{@{}llrrl@{}}
+    \toprule
+    Approach & Change & Before & After & Decision \\
+    \midrule
+    A1 & RBF SVM $\to$ multinomial logistic regression & 0.783 & 0.725 & kept (final) \\
+    A1 & 13 $\to$ 40 MFCCs in the statistics & 0.783 & 0.880 & rejected \\
+    A2 & + per-utterance CMVN & 1.650 & 0.931 & kept \\
+    A2 & silence trim $\to$ centred 1.5~s energy window & 0.931 & 0.380 & kept \\
+    A2 & 5 states $\times$ 2 Gaussians $\to$ 12 $\times$ 8 (grid search) & 0.380 & 0.180 & kept (final) \\
+    A3 & + SpecAugment & 0.214 & 0.153 & kept \\
+    A3 & SpecAugment $\to$ full augmentation & 0.153 & 0.166 & rejected \\
+    A3 & attention pooling $\to$ last hidden state & 0.153 & 0.915 & rejected \\
+    A3 & bidirectional $\to$ forward-only LSTM & 0.153 & 0.246 & rejected \\
+    A3 & energy window $\to$ silence trim & 0.144 & 0.759 & rejected \\
+    A3 & + convolutional front-end & 0.142 & 0.134 & kept (final) \\
+    A4 & + SpecAugment & 0.176 & 0.179 & rejected \\
+    A4 & + full augmentation (SpecAugment, shift, tempo, noise) & 0.176 & 0.140 & kept \\
+    A4 & log-mel $\to$ MFCC-40 with deltas (noise then off) & 0.140 & 0.133 & kept \\
+    A4 & 1.5~s $\to$ 2.0~s window & 0.133 & 0.119 & kept (final) \\
+    A4 & energy window $\to$ silence trim & 0.119 & 0.276 & rejected \\
+    A4 & deeper / wider kernels / narrower network & 0.119 & 0.151--0.158 & rejected \\
+    A5 & multilingual XLS-R $\to$ English-only wav2vec~2.0 Base & 0.111 & 0.120 & rejected \\
+    A5 & fine-tuned $\to$ frozen encoder (head only) & 0.111 & 1.960 & rejected \\
+    A5 & + waveform augmentation (shift, speed, noise) & 0.111 & 0.101 & kept (final) \\
+    A5 & 1.5~s $\to$ 1.0~s window & 0.101 & 0.130 & rejected \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\subsection{Test results}
+Table~\ref{tab:test} gives the final scores on the 630 test clips. A5 is the best model on
+every metric: log loss $0.093\pm0.001$, accuracy $98.1\pm0.1\%$ and macro-F1 0.982 (12 errors for seed 42). A4
+follows (log loss 0.125, 96.3\%), then A3 (0.170, 96.0\%), the HMM (0.186, 96.5\%) and the order-free A1 (0.700,
+79.5\%).
+
+Validation predicted test well. A5, A2 and A1 moved by at most 0.025 log loss, and A4 improved slightly. A3 lost the
+most (0.137 to 0.170). Its configuration combines five search decisions, each chosen on validation, so this is
+consistent with selection optimism~\cite{cawley2010overfitting}. With 630 clips, the seed-42 bootstrap intervals
+span about $\pm$1--1.5 accuracy points for the order-aware models (for A5, 97.0--99.0\%) and $\pm$3 for A1.
+
+\begin{table*}[t]
+  \centering
+  \caption{Test results (630 clips; mean $\pm$ SD over three seeds for A3--A5). Params counts all weights. Train is
+  the final run's training time (T4 GPU for A3--A5, CPU for A1--A2). CPU ms/clip is the latency
+  from audio file to probabilities on one CPU thread.}
+  \label{tab:test}
+  \small
+  \input{../results/tables/test_results.tex}
+\end{table*}
+
+\begin{table}[t]
+  \centering
+  \caption{Significance on the test split (seed 42). McNemar's exact test counts the clips where only one model is
+  right; $p$ is Holm-corrected over the five comparisons. $\Delta$ is the difference in log loss (first $-$ second)
+  with a paired-bootstrap 95\% interval.}
+  \label{tab:significance}
+  \footnotesize
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}lrrrl@{}}
+    \toprule
+    Comparison & Only 1st & Only 2nd & $p$ & $\Delta$ log loss [95\% CI] \\
+    \midrule
+    A5 vs A1 & 118 & 1 & $<10^{-32}$ & $-0.608$ [$-0.698$, $-0.531$] \\
+    A5 vs A2 & 12 & 2 & 0.039 & $-0.094$ [$-0.133$, $-0.055$] \\
+    A5 vs A3 & 13 & 1 & 0.007 & $-0.074$ [$-0.121$, $-0.029$] \\
+    A5 vs A4 & 7 & 0 & 0.039 & $-0.014$ [$-0.036$, $+0.005$] \\
+    A3 vs A4 & 4 & 9 & 0.27 & $+0.059$ [$+0.018$, $+0.101$] \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Which differences are real}
+A5 is significantly more accurate than every other model after Holm's correction (Table~\ref{tab:significance}).
+On log loss, its lead over A1--A3 is clear, but its lead over A4 is not: the interval includes zero. A5 makes fewer
+errors, while A4's probabilities are nearly as good. The central architectural comparison, recurrence (A3) against
+convolution (A4), shows no significant difference in accuracy (4 against 9 discordant clips, $p=0.27$). A4's log
+loss is lower, however, by 0.059 [0.018, 0.101]. That holds for seed 42; across seeds the gap (0.170 against 0.125)
+is under two of A4's seed standard deviations. The final A3 also has a convolutional front-end, so this compares a
+recurrent network with convolutional input layers against a purely convolutional one. The HMM ties with both on
+accuracy as well (11 against 9 discordant clips with A3, $p=0.82$; 5 against 8 with A4, $p=0.58$; uncorrected tests
+outside the family of Table~\ref{tab:significance}).
+
+\paragraph{Calibration}
+Label smoothing leaves every neural model under-confident, and the HMM's raw scores are flatter still (test ECE
+0.07--0.23 before scaling). Temperatures fitted on validation (0.38--0.71) transfer to the test split and bring ECE
+down to 0.011--0.023.
+
+\paragraph{Where the errors are}
+The anagram pair shows the effect of modelling order: \textit{sita}/\textit{tisa} is confused in 8.6\% of its test
+clips by A1, but in only 1.0--1.9\% by A2--A5. Per word, A1 fails broadly, while the order-aware models' errors are
+spread thinly over many words (Fig.~\ref{fig:perword}). Section~\ref{sec:errors} shows that ten recordings, shared by
+all order-aware models, account for 10 of A5's 12 errors and about half of the other models' errors.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/test_per_word_f1.png}
+  \caption{Per-word test F1 (seed 42). The order-free A1 is far behind on every word. The order-aware models stay
+  above 93\% on every word.}
+  \label{fig:perword}
+\end{figure}
+
+\subsection{How much labelled speech is needed}
+Each final configuration was retrained on 10, 25 and 50\% of the training clips (nested, stratified subsets; one
+seed each) and scored on the test split (Fig.~\ref{fig:datasize}).
+\begin{itemize}
+  \item \emph{Pretraining pays off most when data is scarce.} With 24 clips per word, A5 reaches 96.5\%. That is about
+        as accurate as the models trained from scratch on all 245 clips per word (96.2--97.0\%). It saturates by about
+        120 clips per word.
+  \item \emph{Without pretraining, the HMM is the most data-efficient model.} At 24 clips per word it reaches
+        89.2\%, against 83.5\% for A3 and 62.5\% for A4. From 61 clips per word on, A3 and A4 stay within
+        1.4 points of the HMM, and only on the full training set does A4 overtake it.
+\end{itemize}
+The recipe was held fixed, so the smallest subsets also received fewer optimisation steps. At 10\%, A3--A5 were
+still improving at their final epoch, so those points understate them, A4 most of all.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.78\linewidth]{figures/data_size_curve.png}
+  \caption{Test accuracy and log loss when each final configuration is retrained on 10--100\% of the training clips
+  (24--245 per word; one seed per point).}
+  \label{fig:datasize}
+\end{figure*}
+
+\subsection{Cost}
+The accuracy has a price (Table~\ref{tab:test}). A5 has 316M parameters (1.26~GB as 32-bit weights) and needs
+871~ms per clip on one CPU thread. A4 has 150K parameters (0.6~MB) and needs 9~ms. A5 is thus about 96 times slower and 2{,}100 times
+larger, in exchange for 0.032 lower log loss and 1.8 more accuracy points. On a phone or a low-cost voice server, A4
+is the efficient choice. Where an error is costly, for example when confirming a mobile-money amount, A5 is worth its
+price.
+
+\subsection{Discussion}
+We return to the research question: how effectively do sequential models recognise spoken Swahili words, and why?
+\begin{enumerate}
+  \item \emph{Modelling order is necessary.} Every order-aware model reaches 96--98\% test accuracy, against 79.5\%
+        for order-free statistics. A1 also differs in features and capacity, so the gap alone does not prove that
+        order is the cause. The anagram pair and the stress test (Section~\ref{sec:errors}) make the link directly,
+        as the EDA predicted: the order-aware models confuse \textit{sita} and \textit{tisa} rarely, and fail on
+        reversed words. For A5, the order that matters lies mostly within about 100~ms.
+  \item \emph{How order is modelled matters less than expected.} A classical HMM ties the neural models trained from
+        scratch on accuracy. Convolution matches a BiLSTM with a convolutional front-end in accuracy, with 5.7 times
+        fewer parameters, and has a lower log loss for seed 42. This agrees with the finding that convolutional
+        networks rival recurrent ones on sequence tasks~\cite{bai2018empirical}, here for sequences as short as a
+        single word.
+  \item \emph{Pretraining brings the largest gain we observed,} above all with little data. A model that heard only
+        91 hours of Swahili during pretraining~\cite{babu2022xlsr}, and an English-only model almost as well,
+        transfer effectively to Swahili words. Our design confounds pretraining with A5's architecture, input and
+        size (Section~\ref{sec:limitations}), but the result supports self-supervised pretraining as the practical
+        route for low-resource languages~\cite{baevski2020wav2vec,doumbouya2021using}.
+  \item \emph{The data sets the ceiling.} Locating the word in a long, noisy recording mattered as much as the
+        model. Ten test clips defeat every order-aware architecture. They are quiet, noisy or badly cropped far more
+        often than other clips, and include a likely label error and words said in English
+        (Section~\ref{sec:errors}).
+\end{enumerate}

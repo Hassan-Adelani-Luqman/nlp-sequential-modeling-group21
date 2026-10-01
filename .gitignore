@@ -31,3 +31,10 @@ runs_tmp/
 Thumbs.db
 .vscode/
 .idea/
+
+# LaTeX build files (report/main.pdf itself is kept)
+report/*.log
+report/*.blg
+report/*.aux
+report/*.bbl
+report/*.out

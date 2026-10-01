@@ -12,14 +12,15 @@ The analysis uses the test split and the final seed-42 runs, unless stated other
 pooled over their three seeds.
 
 \paragraph{The order-aware models use the order of the sounds}
-The anagram pair \textit{sita}/\textit{tisa} is the order-free A1's most-confused pair: 8.6\% of the pair's test
-clips are heard as the other word. For A2--A5 the rate falls to 1.0--1.9\%. Beyond that pair, spelling similarity
-does not predict confusion. Across all 66 word pairs, the rank correlation between confusion rate and edit distance
-lies between $-0.14$ and $+0.04$ for every model (all $p\geq0.25$). The closest pair, \textit{nane}/\textit{nne}
-(edit distance 1), is confused only by A1.
+On the test split, the anagram pair \textit{sita}/\textit{tisa} is the order-free A1's most-confused pair: 8.6\% of
+the pair's clips are heard as the other word. For A2--A5 the rate falls to 1.0--1.9\%. Beyond that pair, spelling
+similarity does not predict confusion. Across all 66 word pairs, the rank correlation between confusion rate and edit
+distance lies between $-0.14$ and $+0.04$ for every model (all $p>0.2$). The closest pair, \textit{nane}/\textit{nne}
+(edit distance 1), is confused in 4.7\% of its clips by A1, but in at most 0.3\% by the order-aware models.
 
 The temporal-order stress test (Fig.~\ref{fig:stress}) checks the use of order directly. Each validation clip is
-played unchanged, reversed, or cut into 100~ms chunks in random order, so every version contains the same sounds.
+played unchanged, reversed, or cut into 100~ms chunks in random order. Every version keeps the same overall spectral
+content, although reversal also reverses the dynamics within each sound, such as a stop's burst.
 \begin{itemize}
   \item \emph{Reversal:} accuracy falls from 95--98\% to 21--39\% for A2--A5. On reversed audio, \textit{tisa} is
         mostly heard as \textit{sita} and vice versa: in 83\% of the pair's clips for the HMM and 62\% for A5.
@@ -33,24 +34,26 @@ played unchanged, reversed, or cut into 100~ms chunks in random order, so every 
         clean, because the cuts also distort their delta features.
 \end{itemize}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=\linewidth]{figures/order_stress_test.png}
+  \includegraphics[width=0.78\linewidth]{figures/order_stress_test.png}
   \caption{Validation accuracy when each clip's word is played unchanged, reversed, or as shuffled 100~ms chunks.
   The control is A1 refitted on static MFCC statistics only.}
   \label{fig:stress}
-\end{figure}
+\end{figure*}
 
 \paragraph{The models fail on the same clips}
 493 of the 630 test clips (78\%) are recognised by all five models, and 102 defeat only A1. Errors that belong to a
 single order-aware architecture are rare: A5 makes none that A2--A4 all avoid, A4 one, A2 seven and A3 eight. The
-same 10 test clips defeat A2, A3, A4 and A5 alike, and they make up 10 of A5's 12 errors.
+same 10 test clips defeat A2, A3, A4 and A5 alike. They make up 10 of A5's 12 errors, and 10 of the 19--24 errors
+of A2--A4.
 
 Pooling those clips with the 11 validation clips that defeat A2--A5, we compared their recordings with all 1,260
 validation and test clips (Table~\ref{tab:hard}).
 \begin{itemize}
   \item \emph{Recording problems:} the hard clips are far more often very quiet, contain several separate
-        utterances, or have speech at the edge of the 1.5~s window, which suggests the crop chose the wrong stretch.
+        utterances, or have speech at the edge of the default 1.5~s window, which suggests the crop chose the wrong
+        stretch. Two-thirds of them are very quiet, noisy or cropped at the edge, against 18\% of all clips.
   \item \emph{Spectrograms:} in about three of the ten hard test clips, the window shows no clear word at all, only
         clicks or near-silence.
   \item \emph{Label-error candidates:} in three clips, A3--A5 agree on the same wrong word with at least 80\%
@@ -72,17 +75,19 @@ The recogniser explains six of the hard clips.
         confident learning and our models.
   \item \emph{Three said in English:} two \textit{hapana} clips contain ``no'', and one \textit{tisa} clip contains
         ``nine''. Our models hear ``nine'' as \textit{nane}.
-  \item \emph{Two crop failures:} the labelled word is in the recording, but outside the window the models saw.
+  \item \emph{Two crop failures:} the labelled word is in the recording, but outside the 1.5~s window.
 \end{itemize}
-Most of the remaining transcripts contain other speech, such as a different Swahili phrase or English in the
-background, or no recognisable speech at all. So the hard clips are mostly collection problems, not modelling
-failures. Excluding the two test clips that do not hold the labelled Swahili word raises every model's test accuracy
-by 0.3 points and leaves the ranking unchanged. We did not relabel anything.
+The remaining transcripts contain other speech, such as a different Swahili phrase or English in the background, or
+nothing. Because the recogniser also misses the word in 18\% of easy clips, these transcripts are weak evidence on
+their own. Six of the 21 hard clips are therefore clear collection problems. For most of the rest, the recording
+flags in Table~\ref{tab:hard} point to difficult audio rather than to a weakness of one architecture. Excluding the
+two test clips that do not hold the labelled Swahili word raises every model's test accuracy by 0.3 points and leaves
+the ranking unchanged. We did not relabel anything.
 
 \begin{table}[t]
   \centering
   \caption{Recording flags among the 21 clips that every order-aware model misclassifies, against all 1,260
-  validation and test clips.}
+  validation and test clips. The window-edge flag uses the default 1.5~s window.}
   \label{tab:hard}
   \small
   \begin{tabular}{@{}lrr@{}}
@@ -106,18 +111,18 @@ Error rates rise sharply in noisy recordings (Fig.~\ref{fig:strata}).
         30~dB. A5 is the most robust (8.1\%). It is also the only model trained with noise injection, but this
         study cannot separate that from its pretraining.
   \item \emph{Loudness:} quiet recordings are harder for A2--A4 (4.7--8.3\% errors) than for A5 (2.4\%).
-  \item \emph{Duration:} words estimated to last over 0.7~s show higher error rates, but mostly because noise
-        inflates the estimate. Duration and SNR are correlated ($\rho=-0.42$), and among long clips with good SNR,
-        A5 makes one error in 50.
+  \item \emph{Duration:} words estimated to last over 0.7~s show higher error rates. Part of this is noise
+        inflating the estimate: duration and SNR are correlated ($\rho=-0.42$), and among the 50 long clips with good
+        SNR, A5 makes one error. A2--A4 still make two or three there (4--6\%), above their overall rates.
 \end{itemize}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=\linewidth]{figures/p8_error_strata.png}
+  \includegraphics[width=0.82\linewidth]{figures/p8_error_strata.png}
   \caption{Test error rate of the order-aware models by estimated word duration, SNR and loudness, with 95\%
   Wilson intervals.}
   \label{fig:strata}
-\end{figure}
+\end{figure*}
 
 \paragraph{What the models attend to}
 \textit{nne} and \textit{nane} differ in the first half of the word, where \textit{nane} has the vowel /a/.
