@@ -1,0 +1,33 @@
+approach: A5
+exp_id: A5-R2-03
+selected_by: lowest validation log loss over rounds R1 and R2
+checkpoints: 'A5-R3-01_seed{42,13,7}.pt (the R2 runs save none: 1.2 GB each)'
+params:
+  features:
+    feature: wave
+    crop: energy
+    seconds: 1.5
+  model:
+    backbone: xlsr-300m
+    freeze: feature_encoder
+    head_lr: 0.001
+    weighted_layer_sum: false
+    mask_time_prob: 0.05
+    layerdrop: 0.0
+  train:
+    epochs: 10
+    batch_size: 16
+    lr: 3.0e-05
+    patience: 10
+  augment: wave
+extra:
+  best_epoch: 6
+  epochs_run: 10
+  temperature: 0.7082678856091595
+  n_params: 315704204
+  n_trainable: 311494028
+val:
+  log_loss: 0.1005
+  accuracy: 0.9794
+  macro_f1: 0.9794
+  ece: 0.012
