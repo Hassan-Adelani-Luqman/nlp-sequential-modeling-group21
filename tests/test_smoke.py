@@ -13,7 +13,7 @@ import pytest
 import soundfile as sf
 
 from src import data, evaluate, features, utils
-from src.paths import SPLITS_DIR
+from src.paths import REPO_ROOT, SPLITS_DIR
 
 WORDS = ["hapana", "kumi", "mbili", "moja", "nane", "ndio", "nne", "saba", "sita", "tano", "tatu", "tisa"]
 SR = data.TARGET_SR
@@ -288,7 +288,41 @@ def test_experiment_logging(tmp_path):
     assert (tmp_path / "experiments.csv").exists()
 
 
+def test_clip_stats_counts_segments_and_estimates_snr(tmp_path):
+    from src.features import clip_stats
+
+    rng = np.random.default_rng(0)
+    sr = 16000
+    wav = 0.001 * rng.standard_normal(4 * sr)                          # quiet noise floor
+    for start in (0.5, 2.5):                                           # two 0.4 s "words", 1.6 s apart
+        i = int(start * sr)
+        wav[i: i + int(0.4 * sr)] += 0.3 * np.sin(2 * np.pi * 300 * np.arange(int(0.4 * sr)) / sr)
+    path = tmp_path / "two_words.wav"
+    sf.write(path, wav.astype(np.float32), sr)
+    s = clip_stats(path)
+    assert s["n_segments"] == 2 and 0.3 <= s["word_s"] <= 0.5
+    assert s["snr_db"] > 40 and not s["at_edge"]
+
+
 # --------------------------------------------------------------------------- real data
+@pytest.mark.skipif(not (SPLITS_DIR / "manifest.json").exists(), reason="frozen split not created yet")
+def test_clip_stats_matches_the_eda():
+    """The shared definition must reproduce the EDA's cached statistics (notebook 01)."""
+    from src.features import clip_stats
+
+    cached = REPO_ROOT / "results" / "metrics" / "eda_clip_stats.csv"
+    try:
+        train = data.load_split("train")
+    except FileNotFoundError:
+        pytest.skip("audio data not available in this environment")
+    if not cached.exists():
+        pytest.skip("EDA statistics not computed")
+    eda = pd.read_csv(cached).set_index("id")
+    for path in train.path.iloc[:5]:
+        s = clip_stats(path)
+        for col in ("clip_s", "trimmed_s", "word_s", "rms_dbfs", "peak", "snr_db"):
+            assert s[col] == pytest.approx(eda.loc[s["id"], col], rel=1e-6, abs=1e-9)
+
 @pytest.mark.skipif(not (SPLITS_DIR / "manifest.json").exists(), reason="frozen split not created yet")
 def test_committed_split_is_intact():
     assert data.verify_splits(), "data/splits files changed - they no longer match manifest.json"

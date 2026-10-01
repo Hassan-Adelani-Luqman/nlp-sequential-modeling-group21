@@ -253,6 +253,47 @@ def utterance_cmvn(seqs: list[np.ndarray], eps: float = 1e-6) -> list[np.ndarray
     return [((s - s.mean(0)) / (s.std(0) + eps)).astype(np.float32) for s in seqs]
 
 
+def clip_stats(path, seconds: float = 1.5, frame: int = 400) -> dict:
+    """Recording statistics of one clip, as defined in the EDA (notebook 01), plus two triage fields.
+
+    On 25 ms frames: speech frames are within 25 dB of the clip's loudest frame; the noise floor is the
+    quietest 20% of frames; ``snr_db`` is speech power over that floor. ``word_s`` counts loud frames inside
+    the centred energy window. The triage fields are ``n_segments``, the number of separate spoken stretches in
+    the whole clip (at least 100 ms long, at least 200 ms apart), and ``at_edge``, whether speech reaches the
+    first or last 50 ms of the window, so the crop may cut the word.
+    """
+    wav = load_audio(path)
+    n = len(wav) // frame * frame
+    fp = (wav[:n].reshape(-1, frame).astype(np.float64) ** 2).mean(1) + 1e-12
+    fdb = 10 * np.log10(fp)
+    speech = fdb >= fdb.max() - 25
+    noise_db = 10 * np.log10(np.percentile(fp, 20))
+    win = energy_crop(wav, seconds)
+    wp = (win[: len(win) // frame * frame].reshape(-1, frame).astype(np.float64) ** 2).mean(1) + 1e-12
+    wdb = 10 * np.log10(wp)
+    in_word = wdb >= wdb.max() - 25
+    edge = max(1, int(round(0.05 * TARGET_SR / frame)))
+    # Separate spoken stretches: runs of speech frames, merged across gaps shorter than 200 ms.
+    runs, start, gap = [], None, 0
+    for i, s in enumerate(speech):
+        if s:
+            start, gap = (i if start is None else start), 0
+        elif start is not None:
+            gap += 1
+            if gap * frame >= 0.2 * TARGET_SR:
+                runs.append(i - gap + 1 - start)
+                start, gap = None, 0
+    if start is not None:
+        runs.append(len(speech) - gap - start)
+    return {"id": os.path.basename(str(path)), "clip_s": len(wav) / TARGET_SR,
+            "trimmed_s": len(trim_silence(wav, top_db=30)) / TARGET_SR,
+            "word_s": float(in_word.sum() * frame / TARGET_SR),
+            "rms_dbfs": float(10 * np.log10(fp.mean())), "peak": float(np.abs(wav).max()),
+            "snr_db": float(10 * np.log10(fp[speech].mean()) - noise_db),
+            "n_segments": int(sum(r * frame >= 0.1 * TARGET_SR for r in runs)),
+            "at_edge": bool(in_word[:edge].any() or in_word[-edge:].any())}
+
+
 def prefix_stats(path, fraction: float, seconds: float = 1.5, top_db: float = 30,
                  n_mfcc: int = N_MFCC) -> np.ndarray:
     """``mfcc_stats`` of only the first ``fraction`` of the spoken word (for the "how early" analysis).
