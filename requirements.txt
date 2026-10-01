@@ -11,6 +11,7 @@ scikit-learn>=1.3,<1.11   # SVC(probability=True) is removed in 1.11 - see src/m
 scipy>=1.10
 joblib>=1.3
 hmmlearn>=0.3         # A2 GMM-HMM
+cleanlab>=2.6         # label-noise check in the error analysis (notebook 06)
 
 # audio
 librosa>=0.10

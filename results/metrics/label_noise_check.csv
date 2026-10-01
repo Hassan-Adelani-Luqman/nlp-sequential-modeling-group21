@@ -1,0 +1,22 @@
+split,id,label,A3–A5 consensus,confident learning,ASR (window),ASR word,found,verdict
+test,id_shwwu8vp7frb.wav,moja,(split),,aakusi e anda a,—,,inconclusive
+test,id_vbda8x3lzr2k.wav,nne,(split),,pape pipzicya,—,,inconclusive
+test,id_tzzh4jowrytj.wav,nane,mbili,,maaaiiti iaiaiaiaka,—,,inconclusive
+test,id_nmjpl6ibm3ps.wav,tano,(split),,mananan an anan nan n nian nia n ian ana,—,,inconclusive
+test,id_o9o4n4o8cohs.wav,sita,(split),,panga viombo,—,,inconclusive
+test,id_s6tzfyrrdji4.wav,nne,saba,,manakikanankaiaiaizizaizizazazazan,—,,inconclusive
+test,id_toljkyjcpo2g.wav,nane,(split),,ma pa nitpa,—,,inconclusive
+val,id_1a8vrokrnq9z.wav,nne,(split),,mapapapa pipaea,—,,inconclusive
+val,id_e8ul9vf9y9p9.wav,sita,(split),,ma kaka a ka a a a a maka ka ka,—,,inconclusive
+val,id_5degcjdtdfwz.wav,saba,ndio,,palelea mahindi,—,,inconclusive
+val,id_zlfye2qpp812.wav,ndio,(split),,ha pani pasi iataa,—,,inconclusive
+val,id_jcyyd4s6alr0.wav,moja,(split),,mana amiana aia akianaiaiaikaiaiaia,—,,inconclusive
+val,id_sxudkv8dqdto.wav,nne,kumi,,manamha kianaiana mianzaza izaza azazazhazaza,—,,inconclusive
+val,id_113b1nm7lrc4.wav,tisa,kumi,,voa nguwa,—,,inconclusive
+val,id_mx5zxx8px3vo.wav,nne,tano,,makara a a aia ma,—,,inconclusive
+test,id_20w1gxv3xqja.wav,tano,(split),,mananan nian nan nan ni n n ina ana iniananiana,tano,"exact, full clip only","label supported, word outside the window"
+val,id_tuptx3hjv00w.wav,moja,(split),,mapapa pai pi piiaa,moja,"exact, full clip only","label supported, word outside the window"
+test,id_92pd0g53n3c9.wav,sita,tisa,flagged,maaaaatisa aaaa,tisa,"inside a token, window",likely label error
+test,id_zm5lgpm8oe4j.wav,hapana,ndio,,noo,hapana,"English, window",said in English
+val,id_v7wh07s88fzy.wav,hapana,ndio,,no,hapana,"English, window",said in English
+val,id_31m65hpbvm02.wav,tisa,nane,,nain,tisa,"English, window",said in English
